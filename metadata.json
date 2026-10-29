@@ -1,0 +1,6 @@
+{
+  "name": "Gemini Multi-Provider Chat",
+  "description": "A Google Gemini-inspired AI chat experience supporting Google Gemini, OpenRouter, and Groq with seamless model switching and streaming.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

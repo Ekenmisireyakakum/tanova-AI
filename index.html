@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gemini Multi-Provider Chat</title>
+    <meta name="description" content="A Google Gemini-inspired AI chat experience supporting Google Gemini, OpenRouter, and Groq with seamless model switching and streaming." />
+    <meta property="og:title" content="Gemini Multi-Provider Chat" />
+    <meta property="og:description" content="A Google Gemini-inspired AI chat experience supporting Google Gemini, OpenRouter, and Groq with seamless model switching and streaming." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        // Suppress unhandled errors and rejections originating from third-party browser extensions (e.g. MetaMask inpage scripts)
+        function isExtensionError(event) {
+          try {
+            var msg = (event && (event.message || (event.reason && (event.reason.message || String(event.reason))))) || '';
+            var filename = (event && event.filename) || '';
+            var stack = (event && event.error && event.error.stack) || (event && event.reason && event.reason.stack) || '';
+            var combined = (msg + ' ' + filename + ' ' + stack).toLowerCase();
+            return (
+              combined.indexOf('metamask') !== -1 ||
+              combined.indexOf('chrome-extension://') !== -1 ||
+              combined.indexOf('moz-extension://') !== -1 ||
+              combined.indexOf('safari-web-extension://') !== -1 ||
+              combined.indexOf('inpage.js') !== -1 ||
+              combined.indexOf('failed to connect to metamask') !== -1
+            );
+          } catch (e) {
+            return false;
+          }
+        }
+
+        window.addEventListener('error', function(event) {
+          if (isExtensionError(event)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            return true;
+          }
+        }, true);
+
+        window.addEventListener('unhandledrejection', function(event) {
+          if (isExtensionError(event)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        }, true);
+
+        try {
+          var t = localStorage.getItem('gemini_multi_theme_v1') || 'dark';
+          if (t === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch(e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

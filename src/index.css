@@ -1,0 +1,243 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+@layer base {
+  :root {
+    --bg-main: #ffffff;
+    --bg-surface: #f4f4f5;
+    --bg-surface-hover: #e4e4e7;
+    --bg-surface-active: #d4d4d8;
+    --bg-sidebar: #fafafa;
+    --border-main: #e4e4e7;
+    --border-subtle: #f4f4f5;
+    --border-strong: #a1a1aa;
+    --text-primary: #09090b;
+    --text-secondary: #52525b;
+    --text-muted: #71717a;
+    --input-bg: #f4f4f5;
+    --modal-bg: #ffffff;
+    --user-bubble-bg: #f4f4f5;
+    --user-bubble-text: #09090b;
+    --gemini-ambient: radial-gradient(circle at 50% 0%, rgba(0, 0, 0, 0.04), transparent 70%);
+  }
+
+  html.dark, :root.dark {
+    --bg-main: #000000;
+    --bg-surface: #121212;
+    --bg-surface-hover: #1c1c1c;
+    --bg-surface-active: #262626;
+    --bg-sidebar: #0a0a0a;
+    --border-main: #262626;
+    --border-subtle: #171717;
+    --border-strong: #404040;
+    --text-primary: #ffffff;
+    --text-secondary: #a3a3a3;
+    --text-muted: #737373;
+    --input-bg: #121212;
+    --modal-bg: #0a0a0a;
+    --user-bubble-bg: #1f1f1f;
+    --user-bubble-text: #ffffff;
+    --gemini-ambient: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 70%);
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+    user-select: text;
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+}
+
+/* Pure monochrome headline text */
+html.dark .gemini-gradient-text,
+:root.dark .gemini-gradient-text {
+  background: linear-gradient(180deg, #ffffff 0%, #a3a3a3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+html:not(.dark) .gemini-gradient-text {
+  background: linear-gradient(180deg, #09090b 0%, #52525b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gemini-ambient-glow {
+  background: var(--gemini-ambient);
+}
+
+/* Custom sleek monochrome scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html.dark ::-webkit-scrollbar-thumb,
+:root.dark ::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 9999px;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover,
+:root.dark ::-webkit-scrollbar-thumb:hover {
+  background: #404040;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 9999px;
+}
+
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: #a1a1aa;
+}
+
+/* Markdown styling inside assistant response (Strictly monochrome) */
+.prose-gemini {
+  color: var(--text-primary);
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+.prose-gemini p {
+  margin-bottom: 1rem;
+}
+
+.prose-gemini p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-gemini h1,
+.prose-gemini h2,
+.prose-gemini h3,
+.prose-gemini h4 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-gemini h1 { font-size: 1.5rem; }
+.prose-gemini h2 { font-size: 1.25rem; }
+.prose-gemini h3 { font-size: 1.1rem; }
+
+.prose-gemini ul, 
+.prose-gemini ol {
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+  padding-left: 1.5rem;
+}
+
+.prose-gemini ul {
+  list-style-type: disc;
+}
+
+.prose-gemini ol {
+  list-style-type: decimal;
+}
+
+.prose-gemini li {
+  margin-bottom: 0.35rem;
+}
+
+.prose-gemini strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+html.dark .prose-gemini code,
+:root.dark .prose-gemini code {
+  font-family: 'JetBrains Mono', monospace;
+  background-color: #1a1a1a;
+  border: 1px solid #2e2e2e;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.88em;
+  color: #f4f4f5;
+}
+
+html:not(.dark) .prose-gemini code {
+  font-family: 'JetBrains Mono', monospace;
+  background-color: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.375rem;
+  font-size: 0.88em;
+  color: #18181b;
+}
+
+.prose-gemini pre {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+  border-radius: 0.75rem;
+  background-color: #0c0c0c;
+  border: 1px solid #262626;
+  overflow-x: auto;
+}
+
+.prose-gemini pre code {
+  background-color: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  color: #fafafa !important;
+  font-size: 0.875rem;
+  border-radius: 0;
+}
+
+.prose-gemini blockquote {
+  border-left: 3px solid var(--text-primary);
+  padding-left: 1rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+.prose-gemini table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+
+.prose-gemini th,
+.prose-gemini td {
+  border: 1px solid var(--border-main);
+  padding: 0.6rem 0.8rem;
+  text-align: left;
+}
+
+.prose-gemini th {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.prose-gemini a {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Monochrome pulse animation */
+@keyframes gemini-pulse {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+.animate-gemini-pulse {
+  animation: gemini-pulse 1.8s ease-in-out infinite;
+}
