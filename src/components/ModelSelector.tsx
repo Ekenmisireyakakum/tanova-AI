@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check, Search, PlusCircle, ExternalLink } from 'lucide-react';
-import { ModelInfo, ProviderId } from '../types';
+import { ModelInfo, ProviderId, ServerStatus } from '../types';
 import { AVAILABLE_MODELS, PROVIDERS } from '../config/models';
 import { ProviderIcon } from './GeminiLogo';
 
@@ -10,6 +10,7 @@ interface ModelSelectorProps {
   onSelect: (provider: ProviderId, model: string) => void;
   apiKeys: { gemini: string; groq: string; openrouter: string };
   geminiEnvAvailable: boolean;
+  serverStatus?: ServerStatus;
   onOpenSettings: () => void;
   compact?: boolean;
 }
@@ -20,6 +21,7 @@ export function ModelSelector({
   onSelect,
   apiKeys,
   geminiEnvAvailable,
+  serverStatus,
   onOpenSettings,
   compact = false,
 }: ModelSelectorProps) {
@@ -61,9 +63,11 @@ export function ModelSelector({
   });
 
   const isKeyConfigured = (p: ProviderId): boolean => {
-    if (p === 'gemini') return Boolean(geminiEnvAvailable || (apiKeys.gemini && apiKeys.gemini.trim().length > 0));
-    if (p === 'groq') return Boolean(apiKeys.groq && apiKeys.groq.trim().length > 0);
-    if (p === 'openrouter') return Boolean(apiKeys.openrouter && apiKeys.openrouter.trim().length > 0);
+    const userKey = apiKeys[p]?.trim();
+    if (userKey && userKey.length > 0) return true;
+    if (p === 'gemini') return Boolean(serverStatus?.geminiEnvKeyAvailable ?? geminiEnvAvailable);
+    if (p === 'groq') return Boolean(serverStatus?.groqEnvKeyAvailable);
+    if (p === 'openrouter') return Boolean(serverStatus?.openrouterEnvKeyAvailable);
     return false;
   };
 

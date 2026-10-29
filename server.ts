@@ -132,6 +132,9 @@ app.post('/api/chat/stream', async (req: Request, res: Response): Promise<void> 
   // Helper to send SSE event
   const sendEvent = (data: any) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
+    if (typeof (res as any).flush === 'function') {
+      (res as any).flush();
+    }
   };
 
   const sendError = (errorMessage: string) => {

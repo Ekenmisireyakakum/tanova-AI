@@ -19,7 +19,7 @@ import {
   Sun,
   Moon,
 } from 'lucide-react';
-import { ApiKeys, AppSettings, ChatSession, ProviderId, ThemeMode } from '../types';
+import { ApiKeys, AppSettings, ChatSession, ProviderId, ServerStatus, ThemeMode } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -27,6 +27,7 @@ interface SettingsModalProps {
   settings: AppSettings;
   onSaveSettings: (settings: AppSettings) => void;
   geminiEnvAvailable: boolean;
+  serverStatus?: ServerStatus;
   sessions: ChatSession[];
   onClearAllSessions: () => void;
   onSelectTheme: (theme: ThemeMode) => void;
@@ -38,6 +39,7 @@ export function SettingsModal({
   settings,
   onSaveSettings,
   geminiEnvAvailable,
+  serverStatus,
   sessions,
   onClearAllSessions,
   onSelectTheme,
@@ -278,6 +280,11 @@ export function SettingsModal({
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
                       Ultra-Fast LPU
                     </span>
+                    {serverStatus?.groqEnvKeyAvailable && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
+                        Active via Server
+                      </span>
+                    )}
                   </div>
                   <a
                     href="https://console.groq.com/keys"
@@ -290,14 +297,20 @@ export function SettingsModal({
                   </a>
                 </div>
 
-                <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                  Allows instant access to Llama 3.3 70B, Llama 3.1 8B, and DeepSeek R1 Distill at ~800 tokens/sec.
-                </p>
+                {serverStatus?.groqEnvKeyAvailable ? (
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    A default Groq API key is already active on the server (~800 tokens/sec). You can immediately chat with Groq models, or enter your own key below to override it.
+                  </p>
+                ) : (
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Allows instant access to Llama 3.3 70B, Llama 3.1 8B, and DeepSeek R1 Distill at ~800 tokens/sec.
+                  </p>
+                )}
 
                 <div className="relative">
                   <input
                     type={showKeys['groq'] ? 'text' : 'password'}
-                    placeholder="gsk_..."
+                    placeholder={serverStatus?.groqEnvKeyAvailable ? 'Active via server (enter custom key to override)' : 'gsk_...'}
                     value={formData.apiKeys.groq}
                     onChange={(e) => handleKeyChange('groq', e.target.value)}
                     className="w-full pl-3.5 pr-20 py-2 text-xs bg-white dark:bg-[#0a0a0a] text-black dark:text-white rounded-xl border border-zinc-300 dark:border-[#262626] focus:outline-none focus:border-black dark:focus:border-white"
@@ -313,9 +326,9 @@ export function SettingsModal({
                     </button>
                     <button
                       type="button"
-                      disabled={testingKey === 'groq' || !formData.apiKeys.groq}
+                      disabled={testingKey === 'groq' || (!formData.apiKeys.groq && !serverStatus?.groqEnvKeyAvailable)}
                       onClick={() => handleTestKey('groq')}
-                      className="px-2 py-1 text-[11px] bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white rounded-lg transition-colors disabled:opacity-40 font-medium"
+                      className="px-2 py-1 text-[11px] bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white rounded-lg transition-colors font-medium"
                     >
                       {testingKey === 'groq' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Test'}
                     </button>
@@ -339,6 +352,11 @@ export function SettingsModal({
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
                       200+ Models
                     </span>
+                    {serverStatus?.openrouterEnvKeyAvailable && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
+                        Active via Server
+                      </span>
+                    )}
                   </div>
                   <a
                     href="https://openrouter.ai/keys"
@@ -351,14 +369,20 @@ export function SettingsModal({
                   </a>
                 </div>
 
-                <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                  Connect to Claude 3.5 Sonnet, DeepSeek R1, GPT-4o Mini, and hundreds of open/proprietary LLMs.
-                </p>
+                {serverStatus?.openrouterEnvKeyAvailable ? (
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    An OpenRouter API key is already active on the server. You can immediately chat with 200+ OpenRouter models, or enter your own key below to override it.
+                  </p>
+                ) : (
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                    Connect to Claude 3.5 Sonnet, DeepSeek R1, GPT-4o Mini, and hundreds of open/proprietary LLMs.
+                  </p>
+                )}
 
                 <div className="relative">
                   <input
                     type={showKeys['openrouter'] ? 'text' : 'password'}
-                    placeholder="sk-or-v1-..."
+                    placeholder={serverStatus?.openrouterEnvKeyAvailable ? 'Active via server (enter custom key to override)' : 'sk-or-v1-...'}
                     value={formData.apiKeys.openrouter}
                     onChange={(e) => handleKeyChange('openrouter', e.target.value)}
                     className="w-full pl-3.5 pr-20 py-2 text-xs bg-white dark:bg-[#0a0a0a] text-black dark:text-white rounded-xl border border-zinc-300 dark:border-[#262626] focus:outline-none focus:border-black dark:focus:border-white"
@@ -374,9 +398,9 @@ export function SettingsModal({
                     </button>
                     <button
                       type="button"
-                      disabled={testingKey === 'openrouter' || !formData.apiKeys.openrouter}
+                      disabled={testingKey === 'openrouter' || (!formData.apiKeys.openrouter && !serverStatus?.openrouterEnvKeyAvailable)}
                       onClick={() => handleTestKey('openrouter')}
-                      className="px-2 py-1 text-[11px] bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white rounded-lg transition-colors disabled:opacity-40 font-medium"
+                      className="px-2 py-1 text-[11px] bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white rounded-lg transition-colors font-medium"
                     >
                       {testingKey === 'openrouter' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Test'}
                     </button>

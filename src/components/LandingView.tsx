@@ -1,6 +1,6 @@
 import React from 'react';
 import { Calendar, FileText, PenTool, Lightbulb, Cpu, Code2, Sparkles } from 'lucide-react';
-import { ProviderId } from '../types';
+import { ProviderId, ServerStatus } from '../types';
 import { SUGGESTION_CHIPS } from '../config/models';
 import { ChatInput } from './ChatInput';
 
@@ -12,6 +12,7 @@ interface LandingViewProps {
   onSelectModel: (provider: ProviderId, model: string) => void;
   apiKeys: { gemini: string; groq: string; openrouter: string };
   geminiEnvAvailable: boolean;
+  serverStatus?: ServerStatus;
   onOpenSettings: () => void;
 }
 
@@ -32,6 +33,7 @@ export function LandingView({
   onSelectModel,
   apiKeys,
   geminiEnvAvailable,
+  serverStatus,
   onOpenSettings,
 }: LandingViewProps) {
   return (
@@ -62,6 +64,7 @@ export function LandingView({
           onSelectModel={onSelectModel}
           apiKeys={apiKeys}
           geminiEnvAvailable={geminiEnvAvailable}
+          serverStatus={serverStatus}
           onOpenSettings={onOpenSettings}
           placeholder="Ask Gemini, Groq, or OpenRouter..."
           isLanding

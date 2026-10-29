@@ -30,6 +30,11 @@ export default function App() {
   const [currentModel, setCurrentModel] = useState<string>(initialModel.model);
 
   const [geminiEnvAvailable, setGeminiEnvAvailable] = useState<boolean>(true);
+  const [serverStatus, setServerStatus] = useState<ServerStatus>({
+    geminiEnvKeyAvailable: true,
+    groqEnvKeyAvailable: true,
+    openrouterEnvKeyAvailable: true,
+  });
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => window.innerWidth >= 1024);
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
 
@@ -60,11 +65,12 @@ export default function App() {
     }
   }, [settings.theme]);
 
-  // Check server environment status for Gemini key on mount
+  // Check server environment status for all provider keys on mount
   useEffect(() => {
     fetch('/api/status')
       .then((res) => res.json())
       .then((data: ServerStatus) => {
+        setServerStatus(data);
         setGeminiEnvAvailable(Boolean(data.geminiEnvKeyAvailable));
       })
       .catch((err) => {
@@ -154,23 +160,44 @@ export default function App() {
     setActiveSessionId(null);
   };
 
+  // Check if a provider has an available API key (either client-side or server-side env)
+  const isProviderAvailable = (provider: ProviderId): boolean => {
+    const userKey = settings.apiKeys[provider]?.trim();
+    if (userKey && userKey.length > 0) return true;
+    if (provider === 'gemini') return Boolean(serverStatus.geminiEnvKeyAvailable ?? geminiEnvAvailable);
+    if (provider === 'groq') return Boolean(serverStatus.groqEnvKeyAvailable);
+    if (provider === 'openrouter') return Boolean(serverStatus.openrouterEnvKeyAvailable);
+    return false;
+  };
+
   // Send Message / Streaming logic
   const handleSendMessage = async (text: string) => {
     if (!text.trim() || isStreaming) return;
 
-    // Check if user has required API key for Groq or OpenRouter
-    const userKey = settings.apiKeys[currentProvider]?.trim();
-    if (currentProvider === 'groq' && !userKey) {
-      setIsSettingsOpen(true);
-      return;
-    }
-    if (currentProvider === 'openrouter' && !userKey) {
-      setIsSettingsOpen(true);
-      return;
-    }
-    if (currentProvider === 'gemini' && !geminiEnvAvailable && !userKey) {
-      setIsSettingsOpen(true);
-      return;
+    // Determine active provider & auto-fallback if selected provider has no key
+    let activeProvider = currentProvider;
+    let activeModel = currentModel;
+
+    if (!isProviderAvailable(activeProvider)) {
+      if (isProviderAvailable('gemini')) {
+        activeProvider = 'gemini';
+        activeModel = 'gemini-3.8-flash';
+        setCurrentProvider('gemini');
+        setCurrentModel('gemini-3.8-flash');
+      } else if (isProviderAvailable('groq')) {
+        activeProvider = 'groq';
+        activeModel = 'openai/gpt-oss-120b';
+        setCurrentProvider('groq');
+        setCurrentModel('openai/gpt-oss-120b');
+      } else if (isProviderAvailable('openrouter')) {
+        activeProvider = 'openrouter';
+        activeModel = 'anthropic/claude-3.5-sonnet';
+        setCurrentProvider('openrouter');
+        setCurrentModel('anthropic/claude-3.5-sonnet');
+      } else {
+        setIsSettingsOpen(true);
+        return;
+      }
     }
 
     const userMessage: ChatMessage = {
@@ -186,8 +213,8 @@ export default function App() {
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
-      provider: currentProvider,
-      model: currentModel,
+      provider: activeProvider,
+      model: activeModel,
       isStreaming: true,
     };
 
@@ -202,8 +229,8 @@ export default function App() {
         id: targetSessionId,
         title,
         messages: [userMessage, assistantPlaceholder],
-        provider: currentProvider,
-        model: currentModel,
+        provider: activeProvider,
+        model: activeModel,
         createdAt: Date.now(),
         updatedAt: Date.now(),
       };
@@ -216,6 +243,8 @@ export default function App() {
         if (s.id === targetSessionId) {
           return {
             ...s,
+            provider: activeProvider,
+            model: activeModel,
             messages: [...s.messages, userMessage, assistantPlaceholder],
             updatedAt: Date.now(),
           };
@@ -246,10 +275,10 @@ export default function App() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          provider: currentProvider,
-          model: currentModel,
+          provider: activeProvider,
+          model: activeModel,
           messages: conversationHistory,
-          apiKey: settings.apiKeys[currentProvider],
+          apiKey: settings.apiKeys[activeProvider],
           temperature: settings.temperature,
           systemInstruction: settings.systemPrompt,
         }),
@@ -449,6 +478,7 @@ export default function App() {
           onSelectModel={handleSelectModel}
           apiKeys={settings.apiKeys}
           geminiEnvAvailable={geminiEnvAvailable}
+          serverStatus={serverStatus}
           onOpenSettings={() => setIsSettingsOpen(true)}
           onOpenUpgrade={() => setIsUpgradeOpen(true)}
           onOpenGetApp={() => setIsGetAppOpen(true)}
@@ -467,6 +497,7 @@ export default function App() {
               onSelectModel={handleSelectModel}
               apiKeys={settings.apiKeys}
               geminiEnvAvailable={geminiEnvAvailable}
+              serverStatus={serverStatus}
               onOpenSettings={() => setIsSettingsOpen(true)}
             />
           ) : (
@@ -491,6 +522,7 @@ export default function App() {
                     onSelectModel={handleSelectModel}
                     apiKeys={settings.apiKeys}
                     geminiEnvAvailable={geminiEnvAvailable}
+                    serverStatus={serverStatus}
                     onOpenSettings={() => setIsSettingsOpen(true)}
                     placeholder={`Ask ${currentModel}...`}
                   />
@@ -516,6 +548,7 @@ export default function App() {
           saveSettings(newSettings);
         }}
         geminiEnvAvailable={geminiEnvAvailable}
+        serverStatus={serverStatus}
         sessions={sessions}
         onClearAllSessions={handleClearAllSessions}
         onSelectTheme={handleSelectTheme}

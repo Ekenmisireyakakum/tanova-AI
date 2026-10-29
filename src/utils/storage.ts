@@ -151,7 +151,7 @@ export const defaultSampleSessions: ChatSession[] = [
     id: 'sample-3',
     title: 'Natural Aging Photo Edit',
     provider: 'openrouter',
-    model: 'anthropic/claude-3.5-sonnet',
+    model: 'nvidia/nemotron-3.5-lightning:free',
     createdAt: Date.now() - 3600000 * 12,
     updatedAt: Date.now() - 3600000 * 12,
     messages: [],

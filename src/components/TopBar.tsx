@@ -1,6 +1,6 @@
 import React from 'react';
 import { Menu, Settings, Download, Sparkles, Sun, Moon } from 'lucide-react';
-import { ProviderId, ThemeMode } from '../types';
+import { ProviderId, ServerStatus, ThemeMode } from '../types';
 import { GeminiLogo } from './GeminiLogo';
 import { ModelSelector } from './ModelSelector';
 
@@ -12,6 +12,7 @@ interface TopBarProps {
   onSelectModel: (provider: ProviderId, model: string) => void;
   apiKeys: { gemini: string; groq: string; openrouter: string };
   geminiEnvAvailable: boolean;
+  serverStatus?: ServerStatus;
   onOpenSettings: () => void;
   onOpenUpgrade: () => void;
   onOpenGetApp: () => void;
@@ -27,6 +28,7 @@ export function TopBar({
   onSelectModel,
   apiKeys,
   geminiEnvAvailable,
+  serverStatus,
   onOpenSettings,
   onOpenUpgrade,
   onOpenGetApp,
@@ -55,6 +57,7 @@ export function TopBar({
             onSelect={onSelectModel}
             apiKeys={apiKeys}
             geminiEnvAvailable={geminiEnvAvailable}
+            serverStatus={serverStatus}
             onOpenSettings={onOpenSettings}
           />
         </div>

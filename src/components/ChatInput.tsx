@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowUp, Mic, MicOff, Plus, Square, FileText, Code2, Briefcase, Wand2 } from 'lucide-react';
-import { ProviderId } from '../types';
+import { ProviderId, ServerStatus } from '../types';
 import { ModelSelector } from './ModelSelector';
 
 interface ChatInputProps {
@@ -12,6 +12,7 @@ interface ChatInputProps {
   onSelectModel: (provider: ProviderId, model: string) => void;
   apiKeys: { gemini: string; groq: string; openrouter: string };
   geminiEnvAvailable: boolean;
+  serverStatus?: ServerStatus;
   onOpenSettings: () => void;
   placeholder?: string;
   isLanding?: boolean;
@@ -26,6 +27,7 @@ export function ChatInput({
   onSelectModel,
   apiKeys,
   geminiEnvAvailable,
+  serverStatus,
   onOpenSettings,
   placeholder = 'Ask Gemini, Groq, or OpenRouter...',
   isLanding = false,
@@ -233,6 +235,7 @@ export function ChatInput({
               onSelect={onSelectModel}
               apiKeys={apiKeys}
               geminiEnvAvailable={geminiEnvAvailable}
+              serverStatus={serverStatus}
               onOpenSettings={onOpenSettings}
               compact
             />
