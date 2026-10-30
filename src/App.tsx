@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatMessage, ChatSession, ProviderId, AppSettings, ServerStatus, ThemeMode, UserAccount } from './types';
+import {
+  ChatMessage,
+  ChatSession,
+  ProviderId,
+  AppSettings,
+  ThemeMode,
+  UserAccount,
+  StudyNotebook,
+} from './types';
 import {
   loadActiveModelSelection,
   loadActiveSessionId,
@@ -7,6 +15,8 @@ import {
   loadSettings,
   loadCurrentUser,
   logoutUser,
+  loadNotebooks,
+  saveNotebooks,
   saveActiveModelSelection,
   saveActiveSessionId,
   saveSessions,
@@ -22,6 +32,13 @@ import { UpgradeModal } from './components/UpgradeModal';
 import { GetAppModal } from './components/GetAppModal';
 import { AuthModal } from './components/AuthModal';
 import { UserProfileModal } from './components/UserProfileModal';
+import { MainWorkspaceView } from './components/Sidebar';
+import { LibraryView } from './components/views/LibraryView';
+import { ImagesView } from './components/views/ImagesView';
+import { ScheduledView } from './components/views/ScheduledView';
+import { StudentsView } from './components/views/StudentsView';
+import { CustomizeView } from './components/views/CustomizeView';
+import { NotebookView } from './components/views/NotebookView';
 
 export default function App() {
   // State management
@@ -30,15 +47,13 @@ export default function App() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(() => loadActiveSessionId());
 
   const initialModel = loadActiveModelSelection();
-  const [currentProvider, setCurrentProvider] = useState<ProviderId>(initialModel.provider);
-  const [currentModel, setCurrentModel] = useState<string>(initialModel.model);
+  const [currentProvider, setCurrentProvider] = useState<ProviderId>(initialModel.provider || 'gemini');
+  const [currentModel, setCurrentModel] = useState<string>(initialModel.model || 'gemini-3.8-flash');
 
-  const [geminiEnvAvailable, setGeminiEnvAvailable] = useState<boolean>(true);
-  const [serverStatus, setServerStatus] = useState<ServerStatus>({
-    geminiEnvKeyAvailable: true,
-    groqEnvKeyAvailable: true,
-    openrouterEnvKeyAvailable: true,
-  });
+  // Study Notebooks state
+  const [notebooks, setNotebooks] = useState<StudyNotebook[]>(() => loadNotebooks());
+  const [activeNotebook, setActiveNotebook] = useState<StudyNotebook | null>(null);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem('gemini_sidebar_open_v1');
@@ -55,13 +70,21 @@ export default function App() {
     } catch {}
   }, [isSidebarOpen]);
 
+  // Persist notebooks state
+  useEffect(() => {
+    saveNotebooks(notebooks);
+  }, [notebooks]);
+
   // User Authentication & Account state
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => loadCurrentUser());
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
-  // Modals
+  // Active Workspace View (inline transition, no modal popup)
+  const [activeView, setActiveView] = useState<MainWorkspaceView>('chat');
+
+  // Modals for auth / profile / upgrade
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [isGetAppOpen, setIsGetAppOpen] = useState(false);
@@ -82,37 +105,14 @@ export default function App() {
     setCurrentUser(null);
   };
 
-  // Apply theme to document root (dark class, attributes, and styles)
+  // Apply light theme to document root (dark mode removed)
   useEffect(() => {
-    const isDark = settings.theme === 'dark';
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      document.documentElement.classList.remove('light');
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.documentElement.style.colorScheme = 'dark';
-      document.body.classList.add('dark');
-      document.body.classList.remove('light');
-    } else {
-      document.documentElement.classList.remove('dark');
-      document.documentElement.classList.add('light');
-      document.documentElement.setAttribute('data-theme', 'light');
-      document.documentElement.style.colorScheme = 'light';
-      document.body.classList.remove('dark');
-      document.body.classList.add('light');
-    }
-  }, [settings.theme]);
-
-  // Check server environment status for all provider keys on mount
-  useEffect(() => {
-    fetch('/api/status')
-      .then((res) => res.json())
-      .then((data: ServerStatus) => {
-        setServerStatus(data);
-        setGeminiEnvAvailable(Boolean(data.geminiEnvKeyAvailable));
-      })
-      .catch((err) => {
-        console.warn('Failed to query server status:', err);
-      });
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.documentElement.style.colorScheme = 'light';
+    document.body.classList.remove('dark');
+    document.body.classList.add('light');
   }, []);
 
   // Save sessions whenever they change
@@ -197,45 +197,39 @@ export default function App() {
     setActiveSessionId(null);
   };
 
-  // Check if a provider has an available API key (either client-side or server-side env)
-  const isProviderAvailable = (provider: ProviderId): boolean => {
-    const userKey = settings.apiKeys[provider]?.trim();
-    if (userKey && userKey.length > 0) return true;
-    if (provider === 'gemini') return Boolean(serverStatus.geminiEnvKeyAvailable ?? geminiEnvAvailable);
-    if (provider === 'groq') return Boolean(serverStatus.groqEnvKeyAvailable);
-    if (provider === 'openrouter') return Boolean(serverStatus.openrouterEnvKeyAvailable);
-    return false;
+  // Notebook handlers
+  const handleSaveNotebook = (nb: StudyNotebook) => {
+    setNotebooks((prev) => {
+      const idx = prev.findIndex((n) => n.id === nb.id);
+      if (idx !== -1) {
+        const next = [...prev];
+        next[idx] = nb;
+        return next;
+      }
+      return [nb, ...prev];
+    });
+  };
+
+  const handleDeleteNotebook = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setNotebooks((prev) => prev.filter((n) => n.id !== id));
+    if (activeNotebook?.id === id) {
+      setActiveNotebook(null);
+    }
+  };
+
+  const handleStartQuizWithNotebook = (nb: StudyNotebook) => {
+    const prompt = `Generate a 5-question comprehensive quiz for my study notebook "${nb.title}" (${nb.subject}). Present Question 1 first and wait for my response before revealing the answer.`;
+    handleSendMessage(prompt);
   };
 
   // Send Message / Streaming logic
   const handleSendMessage = async (text: string) => {
     if (!text.trim() || isStreaming) return;
+    setActiveView('chat');
 
-    // Determine active provider & auto-fallback if selected provider has no key
-    let activeProvider = currentProvider;
-    let activeModel = currentModel;
-
-    if (!isProviderAvailable(activeProvider)) {
-      if (isProviderAvailable('gemini')) {
-        activeProvider = 'gemini';
-        activeModel = 'gemini-3.8-flash';
-        setCurrentProvider('gemini');
-        setCurrentModel('gemini-3.8-flash');
-      } else if (isProviderAvailable('groq')) {
-        activeProvider = 'groq';
-        activeModel = 'openai/gpt-oss-120b';
-        setCurrentProvider('groq');
-        setCurrentModel('openai/gpt-oss-120b');
-      } else if (isProviderAvailable('openrouter')) {
-        activeProvider = 'openrouter';
-        activeModel = 'anthropic/claude-3.5-sonnet';
-        setCurrentProvider('openrouter');
-        setCurrentModel('anthropic/claude-3.5-sonnet');
-      } else {
-        setIsSettingsOpen(true);
-        return;
-      }
-    }
+    const activeProvider = currentProvider || 'gemini';
+    const activeModel = currentModel || 'gemini-3.8-flash';
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -294,7 +288,6 @@ export default function App() {
     // Prepare messages history for API
     const sessionMessages =
       updatedSessions.find((s) => s.id === targetSessionId)?.messages || [];
-    // Exclude the currently streaming assistant placeholder
     const conversationHistory = sessionMessages
       .filter((m) => m.id !== assistantMessageId)
       .map((m) => ({
@@ -315,8 +308,6 @@ export default function App() {
           provider: activeProvider,
           model: activeModel,
           messages: conversationHistory,
-          apiKey: settings.apiKeys[activeProvider],
-          apiKeys: settings.apiKeys,
           temperature: settings.temperature,
           systemInstruction: settings.systemPrompt,
           autoFallback: settings.autoFallback !== false,
@@ -386,7 +377,6 @@ export default function App() {
               }
               if (data.text) {
                 accumulatedText += data.text;
-                // Update assistant message in state
                 setSessions((prev) =>
                   prev.map((s) => {
                     if (s.id === targetSessionId) {
@@ -430,7 +420,6 @@ export default function App() {
       );
     } catch (err: any) {
       if (err.name === 'AbortError') {
-        // User intentionally stopped streaming
         setSessions((prev) =>
           prev.map((s) => {
             if (s.id === targetSessionId) {
@@ -484,14 +473,12 @@ export default function App() {
   const handleRegenerate = () => {
     if (!currentSession || messages.length === 0 || isStreaming) return;
 
-    // Find the last user message
     const lastUserMsgIdx = [...messages].reverse().findIndex((m) => m.role === 'user');
     if (lastUserMsgIdx === -1) return;
 
     const actualIdx = messages.length - 1 - lastUserMsgIdx;
     const lastUserMsg = messages[actualIdx];
 
-    // Remove any assistant responses after this user message
     const prunedMessages = messages.slice(0, actualIdx);
     setSessions((prev) =>
       prev.map((s) =>
@@ -499,16 +486,13 @@ export default function App() {
       )
     );
 
-    // Re-send user message
     handleSendMessage(lastUserMsg.content);
   };
 
   return (
     <div
-      className={`flex h-screen w-screen overflow-hidden ${
-        settings.theme === 'dark' ? 'dark bg-black text-white' : 'light bg-white text-black'
-      } select-text transition-colors duration-200`}
-      data-theme={settings.theme}
+      className="flex h-screen w-screen overflow-hidden bg-white text-zinc-900 select-text font-sans"
+      data-theme="light"
     >
       {/* Collapsible Sidebar */}
       <Sidebar
@@ -516,20 +500,41 @@ export default function App() {
         onClose={() => setIsSidebarOpen(false)}
         onOpen={() => setIsSidebarOpen(true)}
         onToggle={() => setIsSidebarOpen((prev) => !prev)}
+        activeView={activeView}
+        activeNotebookId={activeNotebook?.id}
         sessions={sessions}
         activeSessionId={activeSessionId}
-        onSelectSession={handleSelectSession}
-        onNewChat={handleNewChat}
+        onSelectSession={(id) => {
+          handleSelectSession(id);
+          setActiveView('chat');
+        }}
+        onNewChat={() => {
+          handleNewChat();
+          setActiveView('chat');
+        }}
         onDeleteSession={handleDeleteSession}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={() => setActiveView('customize')}
         onOpenHelp={() => setIsUpgradeOpen(true)}
-        geminiEnvAvailable={geminiEnvAvailable}
+        onOpenLibrary={() => setActiveView('library')}
+        onOpenImages={() => setActiveView('images')}
+        onOpenScheduled={() => setActiveView('scheduled')}
+        onOpenStudents={() => setActiveView('students')}
+        onOpenCustomize={() => setActiveView('customize')}
+        onOpenNewNotebook={() => {
+          setActiveNotebook(null);
+          setActiveView('notebook');
+        }}
+        onOpenNotebook={(nb) => {
+          setActiveNotebook(nb);
+          setActiveView('notebook');
+        }}
+        notebooks={notebooks}
+        onDeleteNotebook={handleDeleteNotebook}
         theme={settings.theme}
         onToggleTheme={handleToggleTheme}
         currentUser={currentUser}
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenAuth={handleOpenAuth}
-        onOpenStudents={handleNewChat}
       />
 
       {/* Main Content Area */}
@@ -541,10 +546,7 @@ export default function App() {
           currentProvider={currentProvider}
           currentModel={currentModel}
           onSelectModel={handleSelectModel}
-          apiKeys={settings.apiKeys}
-          geminiEnvAvailable={geminiEnvAvailable}
-          serverStatus={serverStatus}
-          onOpenSettings={() => setIsSettingsOpen(true)}
+          onOpenSettings={() => setActiveView('customize')}
           onOpenUpgrade={() => setIsUpgradeOpen(true)}
           onOpenGetApp={() => setIsGetAppOpen(true)}
           theme={settings.theme}
@@ -554,19 +556,71 @@ export default function App() {
           onOpenProfile={() => setIsProfileOpen(true)}
         />
 
-        {/* View Switch: Landing Screen vs Chat Interface */}
+        {/* View Switch: Workspace Views vs Landing Screen vs Chat Interface */}
         <main className="flex-1 flex flex-col overflow-y-auto relative">
-          {!hasMessages ? (
+          {activeView === 'library' ? (
+            <LibraryView
+              onSelectPrompt={handleSendMessage}
+              onBackToChat={() => setActiveView('chat')}
+            />
+          ) : activeView === 'images' ? (
+            <ImagesView
+              onChatAboutImage={handleSendMessage}
+              onBackToChat={() => setActiveView('chat')}
+            />
+          ) : activeView === 'scheduled' ? (
+            <ScheduledView
+              onRunPrompt={handleSendMessage}
+              onBackToChat={() => setActiveView('chat')}
+            />
+          ) : activeView === 'students' ? (
+            <StudentsView
+              notebooks={notebooks}
+              onOpenNotebook={(nb) => {
+                setActiveNotebook(nb);
+                setActiveView('notebook');
+              }}
+              onOpenNewNotebook={() => {
+                setActiveNotebook(null);
+                setActiveView('notebook');
+              }}
+              onSendMessage={handleSendMessage}
+              onBackToChat={() => setActiveView('chat')}
+            />
+          ) : activeView === 'customize' ? (
+            <CustomizeView
+              settings={settings}
+              onSaveSettings={(newSettings) => {
+                setSettings(newSettings);
+                saveSettings(newSettings);
+              }}
+              sessions={sessions}
+              onClearAllSessions={handleClearAllSessions}
+              onSelectTheme={handleSelectTheme}
+              onBackToChat={() => setActiveView('chat')}
+            />
+          ) : activeView === 'notebook' ? (
+            <NotebookView
+              notebook={activeNotebook}
+              onSaveNotebook={(nb) => {
+                handleSaveNotebook(nb);
+                setActiveNotebook(nb);
+              }}
+              onDeleteNotebook={(id) => {
+                handleDeleteNotebook(id);
+                setActiveView('students');
+              }}
+              onStartQuizWithNotebook={handleStartQuizWithNotebook}
+              onBackToChat={() => setActiveView('chat')}
+            />
+          ) : !hasMessages ? (
             <LandingView
               onSendMessage={handleSendMessage}
               isStreaming={isStreaming}
               currentProvider={currentProvider}
               currentModel={currentModel}
               onSelectModel={handleSelectModel}
-              apiKeys={settings.apiKeys}
-              geminiEnvAvailable={geminiEnvAvailable}
-              serverStatus={serverStatus}
-              onOpenSettings={() => setIsSettingsOpen(true)}
+              onOpenSettings={() => setActiveView('customize')}
               currentUser={currentUser}
             />
           ) : (
@@ -576,12 +630,12 @@ export default function App() {
                 messages={messages}
                 isStreaming={isStreaming}
                 onRegenerate={handleRegenerate}
-                onOpenSettings={() => setIsSettingsOpen(true)}
+                onOpenSettings={() => setActiveView('customize')}
                 onSelectModel={handleSelectModel}
               />
 
               {/* Bottom Sticky Input Bar */}
-              <div className="sticky bottom-0 z-20 w-full bg-gradient-to-t from-white via-white/95 to-transparent dark:from-black dark:via-black/95 dark:to-transparent pt-4 pb-3 px-4 sm:px-6">
+              <div className="sticky bottom-0 z-20 w-full bg-gradient-to-t from-white via-white/95 to-transparent pt-4 pb-3 px-4 sm:px-6">
                 <div className="max-w-4xl mx-auto w-full">
                   <ChatInput
                     onSendMessage={handleSendMessage}
@@ -590,10 +644,7 @@ export default function App() {
                     currentProvider={currentProvider}
                     currentModel={currentModel}
                     onSelectModel={handleSelectModel}
-                    apiKeys={settings.apiKeys}
-                    geminiEnvAvailable={geminiEnvAvailable}
-                    serverStatus={serverStatus}
-                    onOpenSettings={() => setIsSettingsOpen(true)}
+                    onOpenSettings={() => setActiveView('customize')}
                     placeholder={`Ask ${currentModel}...`}
                   />
 
@@ -608,7 +659,7 @@ export default function App() {
         </main>
       </div>
 
-      {/* Modals */}
+      {/* Modals for Settings, Auth, and Account info */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
@@ -617,8 +668,6 @@ export default function App() {
           setSettings(newSettings);
           saveSettings(newSettings);
         }}
-        geminiEnvAvailable={geminiEnvAvailable}
-        serverStatus={serverStatus}
         sessions={sessions}
         onClearAllSessions={handleClearAllSessions}
         onSelectTheme={handleSelectTheme}
@@ -629,7 +678,7 @@ export default function App() {
         onClose={() => setIsUpgradeOpen(false)}
         onOpenSettings={() => {
           setIsUpgradeOpen(false);
-          setIsSettingsOpen(true);
+          setActiveView('customize');
         }}
       />
 
@@ -651,7 +700,10 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         onOpenAuth={handleOpenAuth}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={() => {
+          setIsProfileOpen(false);
+          setActiveView('customize');
+        }}
         sessionCount={sessions.length}
       />
     </div>

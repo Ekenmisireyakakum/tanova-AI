@@ -23,18 +23,12 @@ export const defaultSettings: AppSettings = {
   temperature: 0.7,
   systemPrompt: 'You are Tanovai, a helpful, thoughtful, and capable AI assistant powered by state-of-the-art models. Provide clear, accurate, and beautifully structured responses.',
   streamResponse: true,
-  theme: 'dark',
+  theme: 'light',
   autoFallback: true,
 };
 
 export function loadTheme(): 'light' | 'dark' {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.THEME);
-    if (raw === 'light' || raw === 'dark') return raw;
-    return 'dark';
-  } catch {
-    return 'dark';
-  }
+  return 'light';
 }
 
 export function saveTheme(theme: 'light' | 'dark'): void {
@@ -83,11 +77,11 @@ export function loadSettings(): AppSettings {
       ...defaultSettings,
       ...parsed,
       apiKeys: keys,
-      theme: parsed.theme || currentTheme,
+      theme: 'light',
       autoFallback: parsed.autoFallback !== undefined ? Boolean(parsed.autoFallback) : true,
     };
   } catch {
-    return { ...defaultSettings, apiKeys: loadApiKeys(), theme: loadTheme() };
+    return { ...defaultSettings, apiKeys: loadApiKeys(), theme: 'light' };
   }
 }
 
@@ -464,14 +458,61 @@ export function updateUserProfile(
 
 const NOTEBOOKS_KEY = 'tanovai_study_notebooks_v1';
 
+export const DEFAULT_NOTEBOOKS: import('../types').StudyNotebook[] = [
+  {
+    id: 'nb-ochem',
+    title: 'Organic Chemistry I & Mechanisms',
+    subject: 'Chemistry',
+    syllabusSnippet: 'Alkanes, SN1/SN2 Substitution, E1/E2 Elimination, Electrophilic Addition, Stereochemistry.',
+    lessonCount: 8,
+    progressPercent: 45,
+    updatedAt: Date.now() - 3600000 * 20,
+    chapters: [
+      { id: 'ch-1', title: 'Stereochemistry & Chirality', summary: 'R/S enantiomers, diastereomers, optical rotation.', completed: true },
+      { id: 'ch-2', title: 'SN1 vs SN2 Nucleophilic Substitution', summary: 'Carbocation intermediates, solvent effects, inversion of configuration.', completed: true },
+      { id: 'ch-3', title: 'E1 & E2 Elimination Reactions', summary: 'Zaitsev vs Hofmann regioselectivity and anti-coplanar transition states.', completed: false },
+    ],
+  },
+  {
+    id: 'nb-diffeq',
+    title: 'Differential Equations & Linear Systems',
+    subject: 'Mathematics',
+    syllabusSnippet: 'First order ODEs, integrating factors, homogeneous equations, Laplace transforms, Fourier series.',
+    lessonCount: 12,
+    progressPercent: 60,
+    updatedAt: Date.now() - 3600000 * 48,
+    chapters: [
+      { id: 'ch-1', title: 'First-Order Linear Differential Equations', summary: 'Separable ODEs and integrating factor method.', completed: true },
+      { id: 'ch-2', title: 'Second-Order Linear Homogeneous ODEs', summary: 'Characteristic equation and damped harmonic oscillators.', completed: true },
+      { id: 'ch-3', title: 'Laplace Transform & Step Functions', summary: 'Transfer functions and solving IVPs algebraically.', completed: false },
+    ],
+  },
+  {
+    id: 'nb-deeplearning',
+    title: 'Deep Learning & Transformer Models',
+    subject: 'Computer Science',
+    syllabusSnippet: 'Backpropagation, attention mechanisms, self-attention matrices, positional encodings, vision transformers.',
+    lessonCount: 10,
+    progressPercent: 30,
+    updatedAt: Date.now() - 3600000 * 72,
+    chapters: [
+      { id: 'ch-1', title: 'Gradient Descent & Backprop Calculus', summary: 'Chain rule, computational graphs, Adam optimizer.', completed: true },
+      { id: 'ch-2', title: 'Multi-Head Attention & QKV Projections', summary: 'Scaled dot-product attention and residual normalization.', completed: false },
+    ],
+  },
+];
+
 export function loadNotebooks(): import('../types').StudyNotebook[] {
   try {
     const raw = localStorage.getItem(NOTEBOOKS_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      saveNotebooks(DEFAULT_NOTEBOOKS);
+      return DEFAULT_NOTEBOOKS;
+    }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : DEFAULT_NOTEBOOKS;
   } catch {
-    return [];
+    return DEFAULT_NOTEBOOKS;
   }
 }
 

@@ -6,9 +6,6 @@ export interface ProviderMetadata {
   tagline: string;
   badgeColor: string;
   iconType: 'gemini' | 'groq' | 'openrouter';
-  keyPlaceholder: string;
-  keyUrl: string;
-  keyPrefixHint: string;
 }
 
 export const PROVIDERS: Record<ProviderId, ProviderMetadata> = {
@@ -18,9 +15,6 @@ export const PROVIDERS: Record<ProviderId, ProviderMetadata> = {
     tagline: 'Multimodal intelligence by Google',
     badgeColor: 'border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900',
     iconType: 'gemini',
-    keyPlaceholder: 'AIzaSy...',
-    keyUrl: 'https://aistudio.google.com/app/apikey',
-    keyPrefixHint: 'Starts with AIzaSy',
   },
   groq: {
     id: 'groq',
@@ -28,19 +22,13 @@ export const PROVIDERS: Record<ProviderId, ProviderMetadata> = {
     tagline: 'Ultra-fast LPU inference engine',
     badgeColor: 'border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900',
     iconType: 'groq',
-    keyPlaceholder: 'gsk_...',
-    keyUrl: 'https://console.groq.com/keys',
-    keyPrefixHint: 'Starts with gsk_',
   },
   openrouter: {
     id: 'openrouter',
     name: 'OpenRouter',
-    tagline: 'Unified API for 200+ models',
+    tagline: 'Unified multi-model access',
     badgeColor: 'border-zinc-300 dark:border-zinc-700 bg-zinc-100 dark:bg-zinc-900',
     iconType: 'openrouter',
-    keyPlaceholder: 'sk-or-v1-...',
-    keyUrl: 'https://openrouter.ai/keys',
-    keyPrefixHint: 'Starts with sk-or-v1-',
   },
 };
 

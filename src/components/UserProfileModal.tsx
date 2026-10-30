@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Mail, Calendar, LogOut, Key, Check, Edit2, Sparkles, UserPlus } from 'lucide-react';
+import { X, User, Mail, Calendar, LogOut, Sliders, Check, Edit2, UserPlus } from 'lucide-react';
 import { UserAccount } from '../types';
 import { updateUserProfile } from '../utils/storage';
 import { GeminiSparkleIcon } from './GeminiLogo';
@@ -52,13 +52,13 @@ export function UserProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-white dark:bg-[#121214] rounded-3xl border border-zinc-200 dark:border-[#262626] shadow-2xl overflow-hidden flex flex-col text-black dark:text-white transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden flex flex-col text-slate-800 transition-all">
         {/* Header */}
-        <div className="relative p-6 pb-4 border-b border-zinc-200 dark:border-[#262626] bg-zinc-50 dark:bg-[#18181b] flex items-center justify-between">
+        <div className="relative p-6 pb-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <GeminiSparkleIcon className="w-5 h-5" useGradient={true} />
-            <h2 className="text-lg font-semibold tracking-tight font-['Google_Sans']">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">
               Tanovai Account
             </h2>
           </div>
@@ -66,7 +66,7 @@ export function UserProfileModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 hover:text-slate-800 hover:bg-slate-200 transition-colors cursor-pointer"
             title="Close"
           >
             <X className="w-4 h-4" />
@@ -78,7 +78,7 @@ export function UserProfileModal({
           {currentUser ? (
             <>
               {/* Profile Card */}
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-50 dark:bg-[#1a1a1c] border border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-200">
                 {/* Avatar */}
                 <div
                   className="w-16 h-16 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-white font-bold text-lg border-2 border-white/20 shadow-md"
@@ -99,26 +99,26 @@ export function UserProfileModal({
                         type="text"
                         value={editName}
                         onChange={(e) => setEditName(e.target.value)}
-                        className="text-sm font-semibold bg-white dark:bg-black px-2 py-1 rounded border border-zinc-300 dark:border-zinc-700 w-full"
+                        className="text-sm font-semibold bg-white px-2 py-1 rounded border border-slate-300 text-slate-900 w-full"
                         autoFocus
                       />
                       <button
                         type="button"
                         onClick={handleSaveName}
-                        className="p-1 rounded bg-black text-white dark:bg-white dark:text-black"
+                        className="p-1 rounded bg-slate-700 text-white hover:bg-slate-800"
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-semibold truncate text-black dark:text-white">
+                      <h3 className="text-base font-semibold truncate text-slate-900">
                         {currentUser.name}
                       </h3>
                       <button
                         type="button"
                         onClick={() => setIsEditing(true)}
-                        className="text-zinc-400 hover:text-black dark:hover:text-white transition-colors"
+                        className="text-slate-400 hover:text-slate-800 transition-colors cursor-pointer"
                         title="Edit name"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -126,12 +126,12 @@ export function UserProfileModal({
                     </div>
                   )}
 
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate flex items-center gap-1.5 mt-0.5">
+                  <p className="text-xs text-slate-500 truncate flex items-center gap-1.5 mt-0.5">
                     <Mail className="w-3 h-3 shrink-0" />
                     <span>{currentUser.email}</span>
                   </p>
 
-                  <p className="text-[11px] text-zinc-400 mt-1 flex items-center gap-1">
+                  <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
                     <Calendar className="w-3 h-3 shrink-0" />
                     <span>Joined {new Date(currentUser.createdAt).toLocaleDateString()}</span>
                   </p>
@@ -140,17 +140,17 @@ export function UserProfileModal({
 
               {/* Stats & Info */}
               <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="p-3 rounded-xl bg-zinc-50 dark:bg-[#1a1a1c] border border-zinc-200 dark:border-zinc-800">
-                  <span className="block text-xl font-bold text-black dark:text-white font-['Google_Sans']">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="block text-xl font-bold text-slate-900">
                     {sessionCount}
                   </span>
-                  <span className="text-xs text-zinc-500">Saved Chats</span>
+                  <span className="text-xs text-slate-500">Saved Chats</span>
                 </div>
-                <div className="p-3 rounded-xl bg-zinc-50 dark:bg-[#1a1a1c] border border-zinc-200 dark:border-zinc-800">
-                  <span className="block text-xl font-bold text-black dark:text-white font-['Google_Sans']">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                  <span className="block text-xl font-bold text-slate-900">
                     3
                   </span>
-                  <span className="text-xs text-zinc-500">Connected AI Engines</span>
+                  <span className="text-xs text-slate-500">Connected AI Engines</span>
                 </div>
               </div>
 
@@ -162,13 +162,13 @@ export function UserProfileModal({
                     onClose();
                     onOpenSettings();
                   }}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-700/80 text-xs font-medium transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-800 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
-                    <Key className="w-4 h-4 text-zinc-500" />
-                    <span>Manage API Keys & Model Parameters</span>
+                    <Sliders className="w-4 h-4 text-slate-500" />
+                    <span>Customization & Model Preferences</span>
                   </div>
-                  <span className="text-zinc-400">→</span>
+                  <span className="text-slate-400">→</span>
                 </button>
 
                 <button
@@ -177,13 +177,13 @@ export function UserProfileModal({
                     onClose();
                     onOpenAuth('login');
                   }}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800/80 dark:hover:bg-zinc-700/80 text-xs font-medium transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-xs font-medium text-slate-800 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5">
-                    <UserPlus className="w-4 h-4 text-zinc-500" />
+                    <UserPlus className="w-4 h-4 text-slate-500" />
                     <span>Switch or Add Another Account</span>
                   </div>
-                  <span className="text-zinc-400">→</span>
+                  <span className="text-slate-400">→</span>
                 </button>
 
                 <button
@@ -192,7 +192,7 @@ export function UserProfileModal({
                     onLogout();
                     onClose();
                   }}
-                  className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 text-xs font-medium transition-colors cursor-pointer mt-4"
+                  className="w-full flex items-center justify-center gap-2 p-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 text-xs font-medium transition-colors cursor-pointer mt-4"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Sign Out of Tanovai</span>
@@ -202,15 +202,15 @@ export function UserProfileModal({
           ) : (
             /* Guest / Not logged in state */
             <div className="text-center py-6 space-y-4">
-              <div className="w-12 h-12 mx-auto rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+              <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
                 <User className="w-6 h-6" />
               </div>
 
               <div>
-                <h3 className="text-base font-semibold text-black dark:text-white">
+                <h3 className="text-base font-semibold text-slate-900">
                   You are currently browsing as a Guest
                 </h3>
-                <p className="text-xs text-zinc-500 max-w-xs mx-auto mt-1">
+                <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">
                   Sign in or create an account to save your chat histories, customize models, and sync settings.
                 </p>
               </div>
@@ -222,7 +222,7 @@ export function UserProfileModal({
                     onClose();
                     onOpenAuth('login');
                   }}
-                  className="px-4 py-2 rounded-xl bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-xs font-medium transition-colors"
+                  className="px-4 py-2 rounded-xl bg-slate-700 text-white hover:bg-slate-800 text-xs font-medium transition-colors cursor-pointer"
                 >
                   Sign In
                 </button>
@@ -232,7 +232,7 @@ export function UserProfileModal({
                     onClose();
                     onOpenAuth('signup');
                   }}
-                  className="px-4 py-2 rounded-xl border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-medium transition-colors"
+                  className="px-4 py-2 rounded-xl border border-slate-300 hover:bg-slate-100 text-xs font-medium text-slate-800 transition-colors cursor-pointer"
                 >
                   Create Account
                 </button>

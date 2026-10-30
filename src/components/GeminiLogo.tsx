@@ -73,11 +73,11 @@ export function TanovaiLogo({
       <GeminiSparkleIcon className="w-5 h-5 shrink-0" useGradient={true} />
       {showWordmark && (
         <div className="flex items-baseline gap-1.5">
-          <span className="text-lg font-medium tracking-tight text-black dark:text-white font-['Google_Sans']">
+          <span className="text-lg font-semibold tracking-tight text-slate-800 font-sans">
             Tanovai
           </span>
           {subtitle && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 font-medium border border-zinc-200 dark:border-zinc-700">
+            <span className="text-[10px] px-1.5 py-0.5 rounded text-slate-700 bg-slate-100 font-medium border border-slate-200">
               {subtitle}
             </span>
           )}

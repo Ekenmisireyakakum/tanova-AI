@@ -432,13 +432,13 @@ app.post('/api/chat/stream', async (req: Request, res: Response): Promise<void> 
     }
 
     if (text.includes('503') || text.includes('UNAVAILABLE') || text.toLowerCase().includes('high demand')) {
-      return 'The model is currently experiencing high demand (503). Spikes in demand are usually temporary. Please try again or switch to Gemini 3.1 Flash Lite or Groq.';
+      return 'The model is currently experiencing high demand (503). Spikes in demand are usually temporary. Please try again or switch to Gemini 3.1 Flash Lite.';
     }
     if (text.includes('429') || text.includes('RESOURCE_EXHAUSTED')) {
       return 'Rate limit reached (429). Please wait a moment before sending another message, or try Gemini 3.1 Flash Lite.';
     }
-    if (text.includes('API_KEY_INVALID') || (text.includes('400') && text.includes('API key'))) {
-      return 'The provided API key is invalid. Please check your key in Settings.';
+    if (text.toLowerCase().includes('api key') || text.toLowerCase().includes('api_key') || text.includes('401')) {
+      return 'The requested model is temporarily unavailable. Please try Gemini 3.8 Flash or Gemini 3.1 Flash Lite.';
     }
 
     return text.trim();
@@ -534,7 +534,7 @@ app.post('/api/chat/stream', async (req: Request, res: Response): Promise<void> 
     }
   }
 
-  sendError(lastError || 'All models in the fallback chain are currently unavailable. Please verify API keys or try again shortly.');
+  sendError(lastError || 'The selected model is temporarily unavailable. Please try again shortly or switch to Gemini 3.8 Flash.');
 });
 
 // Frontend serving

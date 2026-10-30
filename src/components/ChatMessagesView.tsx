@@ -8,7 +8,6 @@ import {
   ThumbsUp,
   ThumbsDown,
   AlertCircle,
-  Key,
   User,
   Sparkles,
 } from 'lucide-react';
@@ -43,6 +42,9 @@ function cleanDisplayError(error: string): string {
     }
   }
 
+  if (text.toLowerCase().includes('api key') || text.toLowerCase().includes('api_key') || text.includes('401')) {
+    return 'This model is currently unavailable. Please switch to Gemini 3.8 Flash or Gemini 3.1 Flash Lite.';
+  }
   if (text.includes('503') || text.includes('UNAVAILABLE') || text.toLowerCase().includes('high demand')) {
     return 'This model is currently experiencing temporary high demand (503). Spikes in demand are usually temporary. Please try again or switch to Gemini 3.1 Flash Lite.';
   }
@@ -125,12 +127,12 @@ export function ChatMessagesView({
         if (isUser) {
           return (
             <div key={message.id} className="flex justify-end items-start gap-3 pl-8">
-              <div className="max-w-[85%] sm:max-w-[75%] rounded-3xl bg-zinc-100 dark:bg-[#1a1a1a] px-5 py-3.5 text-black dark:text-white border border-zinc-200 dark:border-[#2e2e2e] shadow-2xs">
+              <div className="max-w-[85%] sm:max-w-[75%] rounded-3xl bg-slate-100 px-5 py-3.5 text-slate-800 border border-slate-200 shadow-2xs">
                 <p className="whitespace-pre-wrap leading-relaxed text-[15px] sm:text-base">
                   {message.content}
                 </p>
               </div>
-              <div className="w-8 h-8 rounded-full bg-black dark:bg-white flex items-center justify-center shrink-0 text-white dark:text-black mt-1 shadow-2xs">
+              <div className="w-8 h-8 rounded-full bg-slate-500 flex items-center justify-center shrink-0 text-white mt-1 shadow-2xs">
                 <User className="w-4 h-4" />
               </div>
             </div>
@@ -144,7 +146,7 @@ export function ChatMessagesView({
         return (
           <div key={message.id} className="flex items-start gap-3 sm:gap-4 pr-4 sm:pr-8">
             {/* Provider Logo Avatar */}
-            <div className="w-8 h-8 rounded-full bg-white dark:bg-[#121212] border border-zinc-300 dark:border-[#262626] flex items-center justify-center shrink-0 mt-1 shadow-2xs text-black dark:text-white">
+            <div className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center shrink-0 mt-1 shadow-2xs text-slate-700">
               <ProviderIcon provider={provider} className="w-4 h-4" />
             </div>
 
@@ -152,17 +154,17 @@ export function ChatMessagesView({
             <div className="flex-1 min-w-0">
               {/* Header: Provider & Model Info */}
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-xs font-semibold text-black dark:text-white">
+                <span className="text-xs font-semibold text-slate-800">
                   {providerName}
                 </span>
                 {message.model && (
-                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-[#1f1f1f] text-black dark:text-white border border-zinc-200 dark:border-[#333333]">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                     {message.model}
                   </span>
                 )}
                 {message.isStreaming && (
-                  <span className="inline-flex items-center gap-1 text-[11px] text-zinc-600 dark:text-zinc-400">
-                    <Sparkles className="w-3 h-3 animate-spin" />
+                  <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+                    <Sparkles className="w-3 h-3 animate-spin text-blue-500" />
                     <span>Thinking...</span>
                   </span>
                 )}
@@ -170,22 +172,22 @@ export function ChatMessagesView({
 
               {/* Fallback Notice Badge */}
               {message.fallback && (
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 mb-2.5 rounded-lg bg-zinc-100 dark:bg-[#1c1c1c] text-zinc-800 dark:text-zinc-200 text-[11.5px] border border-zinc-200 dark:border-zinc-800 shadow-2xs">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 mb-2.5 rounded-lg bg-slate-100 text-slate-700 text-[11.5px] border border-slate-200 shadow-2xs">
                   <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                   <span>
-                    Auto-Fallback: Handled by <strong className="font-medium text-black dark:text-white">{message.fallback.fallbackModel}</strong> due to {message.fallback.reason.toLowerCase()} on {message.fallback.originalModel}
+                    Auto-Fallback: Handled by <strong className="font-medium text-slate-900">{message.fallback.fallbackModel}</strong> due to {message.fallback.reason.toLowerCase()} on {message.fallback.originalModel}
                   </span>
                 </div>
               )}
 
               {/* Message Body or Error */}
               {message.error ? (
-                <div className="p-4 rounded-2xl bg-zinc-100 dark:bg-[#141414] border border-zinc-300 dark:border-zinc-700 text-black dark:text-white text-sm shadow-xs">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-sm shadow-xs">
                   <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-zinc-700 dark:text-zinc-300" />
+                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-500" />
                     <div className="flex-1">
                       <p className="font-semibold text-sm">Request Failed</p>
-                      <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-normal">
+                      <p className="mt-1 text-xs text-slate-600 leading-relaxed font-normal">
                         {cleanDisplayError(message.error)}
                       </p>
                       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -196,7 +198,7 @@ export function ChatMessagesView({
                               onSelectModel('gemini', 'gemini-3.1-flash-lite');
                               setTimeout(() => onRegenerate(), 100);
                             }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-xs font-medium transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-700 text-white hover:bg-slate-800 text-xs font-medium transition-colors cursor-pointer"
                           >
                             <Sparkles className="w-3.5 h-3.5" />
                             <span>Switch to Flash Lite & Retry</span>
@@ -205,7 +207,7 @@ export function ChatMessagesView({
                         <button
                           type="button"
                           onClick={onRegenerate}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white text-xs font-medium transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium transition-colors cursor-pointer border border-slate-200"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           <span>Retry</span>
@@ -215,23 +217,23 @@ export function ChatMessagesView({
                   </div>
                 </div>
               ) : (
-                <div className="text-[15px] sm:text-base">
+                <div className="text-[15px] sm:text-base text-slate-800">
                   <MarkdownRenderer content={message.content} />
                 </div>
               )}
 
               {/* Action Toolbar */}
               {!message.error && !message.isStreaming && message.content && (
-                <div className="flex items-center gap-1 mt-3 text-zinc-500 dark:text-zinc-400">
+                <div className="flex items-center gap-1 mt-3 text-slate-400">
                   {/* Copy Button */}
                   <button
                     type="button"
                     onClick={() => handleCopy(message.id, message.content)}
-                    className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors"
                     title={copiedId === message.id ? 'Copied' : 'Copy response'}
                   >
                     {copiedId === message.id ? (
-                      <Check className="w-4 h-4 text-black dark:text-white" />
+                      <Check className="w-4 h-4 text-emerald-600" />
                     ) : (
                       <Copy className="w-4 h-4" />
                     )}
@@ -241,8 +243,8 @@ export function ChatMessagesView({
                   <button
                     type="button"
                     onClick={() => handleSpeak(message.id, message.content)}
-                    className={`p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors ${
-                      speakingId === message.id ? 'text-black dark:text-white bg-zinc-200 dark:bg-zinc-800' : ''
+                    className={`p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors ${
+                      speakingId === message.id ? 'text-blue-600 bg-blue-50' : ''
                     }`}
                     title={speakingId === message.id ? 'Stop reading' : 'Read aloud'}
                   >
@@ -257,8 +259,8 @@ export function ChatMessagesView({
                   <button
                     type="button"
                     onClick={() => handleFeedback(message.id, 'up')}
-                    className={`p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors ${
-                      feedback[message.id] === 'up' ? 'text-black dark:text-white bg-zinc-200 dark:bg-zinc-800' : ''
+                    className={`p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors ${
+                      feedback[message.id] === 'up' ? 'text-blue-600 bg-blue-50' : ''
                     }`}
                     title="Good response"
                   >
@@ -269,8 +271,8 @@ export function ChatMessagesView({
                   <button
                     type="button"
                     onClick={() => handleFeedback(message.id, 'down')}
-                    className={`p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors ${
-                      feedback[message.id] === 'down' ? 'text-black dark:text-white bg-zinc-200 dark:bg-zinc-800' : ''
+                    className={`p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors ${
+                      feedback[message.id] === 'down' ? 'text-blue-600 bg-blue-50' : ''
                     }`}
                     title="Bad response"
                   >
@@ -282,7 +284,7 @@ export function ChatMessagesView({
                     <button
                       type="button"
                       onClick={onRegenerate}
-                      className="p-1.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-slate-100 hover:text-slate-800 transition-colors"
                       title="Regenerate response"
                     >
                       <RotateCcw className="w-4 h-4" />

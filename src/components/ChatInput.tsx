@@ -10,9 +10,6 @@ interface ChatInputProps {
   currentProvider: ProviderId;
   currentModel: string;
   onSelectModel: (provider: ProviderId, model: string) => void;
-  apiKeys: { gemini: string; groq: string; openrouter: string };
-  geminiEnvAvailable: boolean;
-  serverStatus?: ServerStatus;
   onOpenSettings: () => void;
   placeholder?: string;
   isLanding?: boolean;
@@ -25,9 +22,6 @@ export function ChatInput({
   currentProvider,
   currentModel,
   onSelectModel,
-  apiKeys,
-  geminiEnvAvailable,
-  serverStatus,
   onOpenSettings,
   placeholder = 'Ask Tanovai anything...',
   isLanding = false,
@@ -150,10 +144,10 @@ export function ChatInput({
     <div className="w-full relative">
       {/* Container simulating Gemini's rounded input pill */}
       <div
-        className={`w-full rounded-[28px] sm:rounded-[32px] bg-[#f4f4f5] dark:bg-[#121212] border transition-all duration-200 shadow-2xs dark:shadow-sm ${
+        className={`w-full rounded-[28px] sm:rounded-[32px] bg-white border transition-all duration-200 shadow-xs ${
           hasContent || isListening
-            ? 'border-black dark:border-white shadow-md ring-1 ring-black/20 dark:ring-white/20'
-            : 'border-zinc-300 dark:border-[#262626] hover:border-zinc-400 dark:hover:border-[#404040]'
+            ? 'border-slate-400 shadow-md ring-2 ring-slate-100'
+            : 'border-slate-300 hover:border-slate-400'
         }`}
       >
         {/* Text Input Area */}
@@ -165,7 +159,7 @@ export function ChatInput({
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={isListening ? 'Listening... Speak now...' : placeholder}
-            className="w-full bg-transparent text-black dark:text-white placeholder-zinc-500 dark:placeholder-zinc-500 text-base leading-relaxed resize-none focus:outline-none min-h-[44px] max-h-[220px]"
+            className="w-full bg-transparent text-slate-800 placeholder-slate-400 text-base leading-relaxed resize-none focus:outline-none min-h-[44px] max-h-[220px]"
           />
         </div>
 
@@ -178,49 +172,49 @@ export function ChatInput({
               <button
                 type="button"
                 onClick={() => setShowPlusMenu(!showPlusMenu)}
-                className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-zinc-800 transition-colors"
+                className="w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                 title="Add context or prompt template"
               >
                 <Plus className="w-5 h-5" />
               </button>
 
-              {/* Plus Menu Popover (Monochrome) */}
+              {/* Plus Menu Popover */}
               {showPlusMenu && (
-                <div className="absolute bottom-11 left-0 w-64 rounded-2xl bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-[#262626] shadow-xl p-2 z-50">
-                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                <div className="absolute bottom-11 left-0 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl p-2 z-50">
+                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     Quick Starters
                   </div>
                   <div className="mt-1 space-y-1">
                     <button
                       type="button"
                       onClick={() => insertPromptTemplate('Review this code and identify bugs, edge cases, and performance improvements:\n\n```typescript\n\n```')}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-black dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 text-left transition-colors"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-50 text-left transition-colors"
                     >
-                      <Code2 className="w-4 h-4 text-black dark:text-white shrink-0" />
+                      <Code2 className="w-4 h-4 text-slate-600 shrink-0" />
                       <span>Code Review & Debug</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertPromptTemplate('Draft a polite, executive-level email to our client explaining that...')}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-black dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 text-left transition-colors"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-50 text-left transition-colors"
                     >
-                      <FileText className="w-4 h-4 text-black dark:text-white shrink-0" />
+                      <FileText className="w-4 h-4 text-slate-600 shrink-0" />
                       <span>Draft Professional Email</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertPromptTemplate('Act as an interviewer for a Senior Software Engineer position. Ask me one question at a time and critique my answers.')}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-black dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 text-left transition-colors"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-50 text-left transition-colors"
                     >
-                      <Briefcase className="w-4 h-4 text-black dark:text-white shrink-0" />
+                      <Briefcase className="w-4 h-4 text-slate-600 shrink-0" />
                       <span>Mock Job Interview</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => insertPromptTemplate('Brainstorm 5 innovative, high-impact product ideas around AI automation for...')}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-black dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 text-left transition-colors"
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-slate-700 hover:bg-slate-50 text-left transition-colors"
                     >
-                      <Wand2 className="w-4 h-4 text-black dark:text-white shrink-0" />
+                      <Wand2 className="w-4 h-4 text-slate-600 shrink-0" />
                       <span>Brainstorm Ideas</span>
                     </button>
                   </div>
@@ -233,9 +227,6 @@ export function ChatInput({
               currentProvider={currentProvider}
               currentModel={currentModel}
               onSelect={onSelectModel}
-              apiKeys={apiKeys}
-              geminiEnvAvailable={geminiEnvAvailable}
-              serverStatus={serverStatus}
               onOpenSettings={onOpenSettings}
               compact
             />
@@ -249,8 +240,8 @@ export function ChatInput({
               onClick={toggleSpeech}
               className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
                 isListening
-                  ? 'bg-black text-white dark:bg-white dark:text-black animate-pulse'
-                  : 'text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-200/80 dark:hover:bg-zinc-800'
+                  ? 'bg-rose-500 text-white animate-pulse'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
               title={isListening ? 'Stop listening' : 'Voice input'}
             >
@@ -262,7 +253,7 @@ export function ChatInput({
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="w-9 h-9 rounded-full bg-black text-white dark:bg-white dark:text-black flex items-center justify-center transition-all shadow-md"
+                className="w-9 h-9 rounded-full bg-slate-700 hover:bg-slate-800 text-white flex items-center justify-center transition-all shadow-xs"
                 title="Stop response"
               >
                 <Square className="w-3.5 h-3.5 fill-current" />
@@ -274,8 +265,8 @@ export function ChatInput({
                 disabled={!hasContent}
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
                   hasContent
-                    ? 'bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 shadow-md cursor-pointer scale-100'
-                    : 'text-zinc-400 dark:text-zinc-600 cursor-not-allowed scale-95 opacity-50'
+                    ? 'bg-slate-700 hover:bg-slate-800 text-white shadow-xs cursor-pointer scale-100'
+                    : 'text-slate-300 bg-slate-100 cursor-not-allowed scale-95 opacity-60'
                 }`}
                 title="Send message"
               >

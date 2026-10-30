@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tanovai AI - Multi-Provider Chat</title>
+    <title>Gemini Multi-Provider Chat</title>
     <meta name="description" content="Tanovai AI - A state-of-the-art multi-provider AI chat experience supporting Google Gemini, Groq, and OpenRouter with seamless switching and resilient auto-fallback." />
-    <meta property="og:title" content="Tanovai AI - Multi-Provider Chat" />
+    <meta property="og:title" content="Gemini Multi-Provider Chat" />
     <meta property="og:description" content="Tanovai AI - A state-of-the-art multi-provider AI chat experience supporting Google Gemini, Groq, and OpenRouter with seamless switching and resilient auto-fallback." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Google+Sans:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
       (function() {
         // Suppress unhandled errors and rejections originating from third-party browser extensions (e.g. MetaMask inpage scripts)
@@ -50,16 +50,10 @@
         }, true);
 
         try {
-          var t = localStorage.getItem('gemini_multi_theme_v1') || 'dark';
-          if (t === 'dark') {
-            document.documentElement.classList.add('dark');
-            document.documentElement.setAttribute('data-theme', 'dark');
-            document.documentElement.style.colorScheme = 'dark';
-          } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.setAttribute('data-theme', 'light');
-            document.documentElement.style.colorScheme = 'light';
-          }
+          localStorage.setItem('gemini_multi_theme_v1', 'light');
+          document.documentElement.classList.remove('dark');
+          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.style.colorScheme = 'light';
         } catch(e) {}
       })();
     </script>
