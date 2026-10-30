@@ -11,6 +11,7 @@ interface ChatInputProps {
   currentModel: string;
   onSelectModel: (provider: ProviderId, model: string) => void;
   onOpenSettings: () => void;
+  onOpenUpgrade?: () => void;
   placeholder?: string;
   isLanding?: boolean;
 }
@@ -23,6 +24,7 @@ export function ChatInput({
   currentModel,
   onSelectModel,
   onOpenSettings,
+  onOpenUpgrade,
   placeholder = 'Ask Tanovai anything...',
   isLanding = false,
 }: ChatInputProps) {
@@ -228,7 +230,8 @@ export function ChatInput({
               currentModel={currentModel}
               onSelect={onSelectModel}
               onOpenSettings={onOpenSettings}
-              compact
+              onOpenUpgrade={onOpenUpgrade}
+              direction="up"
             />
           </div>
 

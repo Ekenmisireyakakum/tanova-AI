@@ -36,12 +36,30 @@ export const AVAILABLE_MODELS: ModelInfo[] = [
   // Google Gemini
   {
     id: 'gemini-3.8-flash',
-    name: 'Gemini 3.8 Flash',
+    name: 'Auto',
     provider: 'gemini',
-    description: 'Next-gen flagship speed and multimodal reasoning by Google',
-    tag: 'Flagship',
+    description: 'Gemini 3 models',
+    tag: 'Auto',
     isPopular: true,
     contextWindow: '1M tokens',
+  },
+  {
+    id: 'gemini-3.1-pro',
+    name: '3.1 Pro',
+    provider: 'gemini',
+    description: 'Advanced reasoning',
+    tag: 'Advanced reasoning',
+    isPopular: true,
+    contextWindow: '2M tokens',
+  },
+  {
+    id: 'gemini-4-argon',
+    name: '4 Argon',
+    provider: 'gemini',
+    description: 'Complex tasks',
+    tag: 'Complex tasks',
+    isPopular: false,
+    contextWindow: '2M tokens',
   },
   {
     id: 'gemini-3.1-flash-lite',

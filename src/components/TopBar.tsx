@@ -1,8 +1,6 @@
 import React from 'react';
-import { Menu, Settings, Download, Sparkles, Sun, Moon, LogIn } from 'lucide-react';
+import { Menu, Settings, Download, Sparkles, PenLine, LogIn } from 'lucide-react';
 import { ProviderId, ThemeMode, UserAccount } from '../types';
-import { TanovaiLogo } from './GeminiLogo';
-import { ModelSelector } from './ModelSelector';
 import { UserAvatar } from './Sidebar';
 
 interface TopBarProps {
@@ -14,117 +12,84 @@ interface TopBarProps {
   onOpenSettings: () => void;
   onOpenUpgrade: () => void;
   onOpenGetApp: () => void;
+  onNewChat?: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
   currentUser?: UserAccount | null;
   onOpenAuth?: (mode: 'login' | 'signup') => void;
   onOpenProfile?: () => void;
+  showModelInTopBar?: boolean;
 }
 
 export function TopBar({
   onToggleSidebar,
   isSidebarOpen,
-  currentProvider,
-  currentModel,
-  onSelectModel,
   onOpenSettings,
   onOpenUpgrade,
   onOpenGetApp,
-  theme,
-  onToggleTheme,
+  onNewChat,
   currentUser,
   onOpenAuth,
   onOpenProfile,
 }: TopBarProps) {
   return (
-    <header className="h-14 border-b border-slate-200 bg-white/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between sticky top-0 z-30 transition-colors">
-      {/* Left side */}
-      <div className="flex items-center gap-2 sm:gap-3">
+    <header className="h-14 sm:h-16 bg-transparent px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30 transition-colors">
+      {/* Left side: Menu hamburger button */}
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="w-9 h-9 rounded-full flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-          title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
-          aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          className="w-10 h-10 rounded-full flex items-center justify-center text-[#444746] hover:text-[#1f1f1f] hover:bg-[#f0f4f9] transition-colors cursor-pointer"
+          title={isSidebarOpen ? 'Collapse menu' : 'Main menu'}
+          aria-label={isSidebarOpen ? 'Collapse menu' : 'Main menu'}
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5 stroke-[2]" />
         </button>
-
-        {!isSidebarOpen && <TanovaiLogo />}
-
-        <div className="hidden sm:block ml-1">
-          <ModelSelector
-            currentProvider={currentProvider}
-            currentModel={currentModel}
-            onSelect={onSelectModel}
-            onOpenSettings={onOpenSettings}
-          />
-        </div>
       </div>
 
-      {/* Right side */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5">
-        {/* Mobile model selector */}
-        <div className="block sm:hidden">
-          <ModelSelector
-            currentProvider={currentProvider}
-            currentModel={currentModel}
-            onSelect={onSelectModel}
-            onOpenSettings={onOpenSettings}
-            compact
-          />
-        </div>
-
+      {/* Right side: Get app, Upgrade, and Dashed Pen button */}
+      <div className="flex items-center gap-2 sm:gap-3">
         {/* "Get app" button */}
         <button
           type="button"
           onClick={onOpenGetApp}
-          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-full text-sm font-medium text-[#1f1f1f] bg-[#f0f4f9] hover:bg-[#e3e8f0] transition-colors cursor-pointer"
         >
-          <Download className="w-3.5 h-3.5" />
+          <Download className="w-4 h-4 stroke-[2] text-[#1f1f1f]" />
           <span>Get app</span>
         </button>
 
-        {/* "Upgrade" / "Advanced" button */}
+        {/* "Upgrade" button with soft blue pill */}
         <button
           type="button"
           onClick={onOpenUpgrade}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 shadow-2xs transition-all cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 rounded-full text-sm font-medium bg-[#c2e7ff] hover:bg-[#b3ddfc] text-[#001d35] transition-colors cursor-pointer shadow-none"
         >
-          <Sparkles className="w-3.5 h-3.5 text-current" />
-          <span className="hidden xs:inline">Tanovai Pro</span>
+          <Sparkles className="w-4 h-4 fill-[#001d35] text-[#001d35]" />
+          <span>Upgrade</span>
         </button>
 
-        {/* Settings button */}
+        {/* Dashed circle pen icon button (as seen in screenshot) */}
         <button
           type="button"
-          onClick={onOpenSettings}
-          className="w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
-          title="Settings & Preferences"
-          aria-label="Settings & Preferences"
+          onClick={onNewChat || onOpenSettings}
+          className="w-9 h-9 rounded-full border border-dashed border-[#72777a] hover:border-[#1f1f1f] hover:bg-[#f0f4f9] flex items-center justify-center text-[#444746] hover:text-[#1f1f1f] transition-all cursor-pointer"
+          title="New chat"
+          aria-label="New chat"
         >
-          <Settings className="w-4 h-4" />
+          <PenLine className="w-4 h-4 stroke-[1.8]" />
         </button>
 
-        {/* User profile avatar or Sign In button */}
+        {/* User profile avatar or Settings/Sign In if available */}
         {currentUser ? (
           <div
             onClick={onOpenProfile || onOpenSettings}
-            className="cursor-pointer hover:opacity-85 transition-opacity"
+            className="cursor-pointer hover:opacity-85 transition-opacity ml-1"
             title={`Account: ${currentUser.name}`}
           >
             <UserAvatar user={currentUser} className="w-8 h-8" />
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => onOpenAuth?.('login')}
-            className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-medium bg-slate-700 hover:bg-slate-800 text-white transition-opacity cursor-pointer shadow-xs"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>Sign In</span>
-          </button>
-        )}
+        ) : null}
       </div>
     </header>
   );

@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  Sparkles,
-  Code2,
-  PenTool,
-  Compass,
-  Lightbulb,
-  ArrowUp,
+  PenLine,
+  ScrollText,
+  Brain,
+  Plus,
   Mic,
   MicOff,
-  Plus,
+  ArrowUp,
+  Code2,
+  FileText,
+  Briefcase,
+  Wand2,
 } from 'lucide-react';
 import { ProviderId, UserAccount } from '../types';
-import { GeminiSparkleIcon } from './GeminiLogo';
 import { ModelSelector } from './ModelSelector';
 
 interface LandingViewProps {
@@ -21,7 +22,9 @@ interface LandingViewProps {
   currentModel: string;
   onSelectModel: (provider: ProviderId, model: string) => void;
   onOpenSettings: () => void;
+  onOpenUpgrade?: () => void;
   currentUser?: UserAccount | null;
+  onOpenAuth?: (mode: 'login' | 'signup', reason?: string | null) => void;
 }
 
 export function LandingView({
@@ -31,62 +34,29 @@ export function LandingView({
   currentModel,
   onSelectModel,
   onOpenSettings,
+  onOpenUpgrade,
   currentUser,
+  onOpenAuth,
 }: LandingViewProps) {
   const [inputText, setInputText] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const plusMenuRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const firstName = currentUser?.name ? currentUser.name.split(' ')[0] : 'there';
-
-  const suggestionPrompts = [
-    {
-      id: 'explain',
-      category: 'Understand',
-      title: 'Explain a complex idea',
-      prompt: 'Explain how transformers and attention mechanisms work in machine learning using a clear, intuitive analogy.',
-      icon: Lightbulb,
-      color: 'text-amber-600 bg-amber-50 border-amber-200',
-    },
-    {
-      id: 'code',
-      category: 'Code & Build',
-      title: 'Debug or write clean code',
-      prompt: 'Write a TypeScript utility with generics to retry a promise with exponential backoff and error logging.',
-      icon: Code2,
-      color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
-    },
-    {
-      id: 'write',
-      category: 'Write & Edit',
-      title: 'Draft or polish text',
-      prompt: 'Help me draft a concise, compelling update for stakeholders announcing the successful launch of our new feature.',
-      icon: PenTool,
-      color: 'text-purple-600 bg-purple-50 border-purple-200',
-    },
-    {
-      id: 'brainstorm',
-      category: 'Explore & Plan',
-      title: 'Brainstorm creative angles',
-      prompt: 'Give me 5 distinct and creative business ideas that solve real friction in online collaborative learning.',
-      icon: Compass,
-      color: 'text-blue-600 bg-blue-50 border-blue-200',
-    },
-  ];
-
-  const handleSend = () => {
-    const trimmed = inputText.trim();
-    if (!trimmed || isStreaming) return;
-    onSendMessage(trimmed);
-    setInputText('');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+  // Close plus menu on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (plusMenuRef.current && !plusMenuRef.current.contains(event.target as Node)) {
+        setShowPlusMenu(false);
+      }
     }
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
+  // Speech recognition setup
   const toggleSpeech = () => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -96,7 +66,8 @@ export function LandingView({
       return;
     }
 
-    if (isListening) {
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
       setIsListening(false);
     } else {
       try {
@@ -115,6 +86,7 @@ export function LandingView({
         recognition.onerror = () => setIsListening(false);
         recognition.onend = () => setIsListening(false);
         recognition.start();
+        recognitionRef.current = recognition;
       } catch (err) {
         console.error('Speech recognition error:', err);
         setIsListening(false);
@@ -122,126 +94,223 @@ export function LandingView({
     }
   };
 
+  const handleSend = () => {
+    const trimmed = inputText.trim();
+    if (!trimmed || isStreaming) return;
+    onSendMessage(trimmed);
+    if (currentUser) {
+      setInputText('');
+    }
+  };
+
+  // Clear draft once user logs in
+  useEffect(() => {
+    if (currentUser) {
+      setInputText('');
+    }
+  }, [currentUser]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleSuggestionClick = (prompt: string) => {
+    onSendMessage(prompt);
+  };
+
+  const suggestions = [
+    {
+      id: 'writing-prompts',
+      icon: PenLine,
+      text: 'Give me writing prompts based on my life',
+    },
+    {
+      id: 'structure-sermon',
+      icon: ScrollText,
+      text: 'Help me structure a sermon',
+    },
+    {
+      id: 'reflect-values',
+      icon: Brain,
+      text: 'Reflect on my personal values',
+    },
+  ];
+
   return (
-    <div className="flex-1 flex flex-col justify-between items-center px-4 sm:px-6 py-6 md:py-10 max-w-4xl mx-auto w-full min-h-[calc(100vh-56px)] bg-white text-zinc-900 select-text">
-      {/* Top Greeting Header */}
-      <div className="w-full flex flex-col items-start pt-6 sm:pt-12">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-xs">
-            <GeminiSparkleIcon className="w-6 h-6" />
-          </div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100">
-            Tanovai AI
-          </span>
-        </div>
-
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-tight">
-          <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            Hello, {firstName}
-          </span>
-          <br />
-          <span className="text-zinc-400 font-normal text-3xl sm:text-4xl md:text-5xl mt-1 block">
-            How can I help you today?
-          </span>
+    <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 w-full relative min-h-[calc(100vh-64px)] select-text bg-transparent">
+      {/* Centered Container matching Gemini layout */}
+      <div className="w-full max-w-[760px] flex flex-col items-center -mt-12 sm:-mt-16">
+        {/* Main Headline */}
+        <h1 className="text-3xl sm:text-4xl md:text-[42px] font-normal text-[#1f1f1f] tracking-normal text-center mb-7 sm:mb-8 font-sans select-none">
+          Where should we start?
         </h1>
-      </div>
 
-      {/* Suggestion Starter Cards Grid */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 my-8">
-        {suggestionPrompts.map((item) => {
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => onSendMessage(item.prompt)}
-              className="p-4 rounded-2xl bg-slate-50/80 hover:bg-slate-100/90 border border-slate-200/90 hover:border-slate-300 text-left cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xs flex flex-col justify-between group h-36"
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                    {item.category}
-                  </span>
-                  <div className={`w-7 h-7 rounded-lg border flex items-center justify-center ${item.color}`}>
-                    <Icon className="w-3.5 h-3.5" />
+        {/* Floating Input Pill Bar */}
+        <div className="w-full relative mb-6">
+          <div className="w-full h-14 sm:h-[58px] bg-white rounded-full border border-[#dfe3e7] shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.09)] focus-within:shadow-[0_4px_18px_rgba(0,0,0,0.1)] focus-within:border-[#cbd5e1] transition-all duration-200 flex items-center px-3.5 sm:px-5">
+            {/* Plus Icon Button with Menu */}
+            <div className="relative shrink-0" ref={plusMenuRef}>
+              <button
+                type="button"
+                onClick={() => setShowPlusMenu(!showPlusMenu)}
+                className="w-9 h-9 rounded-full flex items-center justify-center text-[#444746] hover:text-[#1f1f1f] hover:bg-[#f0f4f9] transition-colors cursor-pointer"
+                title="Add files or prompt template"
+                aria-label="Add files or prompt template"
+              >
+                <Plus className="w-5 h-5 stroke-[2]" />
+              </button>
+
+              {/* Plus Menu Popover */}
+              {showPlusMenu && (
+                <div className="absolute top-11 left-0 w-64 rounded-2xl bg-white border border-[#e2e8f0] shadow-xl p-2 z-50">
+                  <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#72777a]">
+                    Quick Starters
+                  </div>
+                  <div className="mt-1 space-y-0.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInputText('Review this code and identify bugs, edge cases, and performance improvements:\n\n```typescript\n\n```');
+                        setShowPlusMenu(false);
+                        inputRef.current?.focus();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-[#1f1f1f] hover:bg-[#f0f4f9] text-left transition-colors cursor-pointer"
+                    >
+                      <Code2 className="w-4 h-4 text-[#444746] shrink-0" />
+                      <span>Code Review & Debug</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInputText('Draft a polite, executive-level email explaining that...');
+                        setShowPlusMenu(false);
+                        inputRef.current?.focus();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-[#1f1f1f] hover:bg-[#f0f4f9] text-left transition-colors cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4 text-[#444746] shrink-0" />
+                      <span>Draft Professional Email</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInputText('Act as an interviewer for a Software Engineer position. Ask me one question at a time and critique my answers.');
+                        setShowPlusMenu(false);
+                        inputRef.current?.focus();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-[#1f1f1f] hover:bg-[#f0f4f9] text-left transition-colors cursor-pointer"
+                    >
+                      <Briefcase className="w-4 h-4 text-[#444746] shrink-0" />
+                      <span>Mock Job Interview</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInputText('Brainstorm 5 innovative, high-impact product ideas around...');
+                        setShowPlusMenu(false);
+                        inputRef.current?.focus();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-[#1f1f1f] hover:bg-[#f0f4f9] text-left transition-colors cursor-pointer"
+                    >
+                      <Wand2 className="w-4 h-4 text-[#444746] shrink-0" />
+                      <span>Brainstorm Ideas</span>
+                    </button>
                   </div>
                 </div>
-                <h3 className="text-sm font-semibold text-slate-800 mt-2.5 group-hover:text-slate-950 transition-colors line-clamp-1">
-                  {item.title}
-                </h3>
-              </div>
-              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                {item.prompt}
-              </p>
-            </button>
-          );
-        })}
-      </div>
+              )}
+            </div>
 
-      {/* Central Input Box */}
-      <div className="w-full max-w-3xl mb-4">
-        <div className="w-full rounded-[28px] sm:rounded-[32px] bg-white border border-slate-300 hover:border-slate-400 focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-100 transition-all duration-200 shadow-xs">
-          {/* Textarea */}
-          <div className="px-5 pt-3.5 pb-2">
-            <textarea
-              rows={2}
+            {/* Input Field */}
+            <input
+              ref={inputRef}
+              type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={isListening ? 'Listening... Speak now...' : 'Ask Tanovai anything...'}
-              className="w-full bg-transparent text-slate-800 placeholder-slate-400 text-base leading-relaxed resize-none focus:outline-none min-h-[50px] max-h-[180px]"
+              placeholder={isListening ? 'Listening... Speak now...' : 'Ask Gemini'}
+              className="flex-1 bg-transparent border-none outline-none text-[#1f1f1f] placeholder:text-[#444746] text-base px-2.5 sm:px-3 font-normal"
             />
-          </div>
 
-          {/* Bottom Bar: Plus, Model Pill, Mic, Send */}
-          <div className="flex items-center justify-between px-3.5 pb-3 pt-1">
-            <div className="flex items-center gap-2">
+            {/* Right Controls: Model Selector & Mic & Send */}
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
               <ModelSelector
                 currentProvider={currentProvider}
                 currentModel={currentModel}
                 onSelect={onSelectModel}
                 onOpenSettings={onOpenSettings}
-                compact
+                onOpenUpgrade={onOpenUpgrade}
+                direction="up"
               />
-            </div>
 
-            <div className="flex items-center gap-2">
-              {/* Mic Button */}
+              {/* Microphone Button */}
               <button
                 type="button"
                 onClick={toggleSpeech}
                 className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
                   isListening
                     ? 'bg-rose-500 text-white animate-pulse'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    : 'text-[#444746] hover:text-[#1f1f1f] hover:bg-[#f0f4f9]'
                 }`}
                 title={isListening ? 'Stop recording' : 'Voice input'}
+                aria-label={isListening ? 'Stop recording' : 'Voice input'}
               >
-                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-5 h-5 stroke-[1.8]" />}
               </button>
 
-              {/* Submit Button */}
-              <button
-                type="button"
-                onClick={handleSend}
-                disabled={!inputText.trim()}
-                className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                  inputText.trim()
-                    ? 'bg-slate-700 hover:bg-slate-800 text-white shadow-xs cursor-pointer scale-100'
-                    : 'text-slate-300 bg-slate-100 cursor-not-allowed scale-95'
-                }`}
-                title="Send message"
-              >
-                <ArrowUp className="w-5 h-5 stroke-[2.5]" />
-              </button>
+              {/* Send Button if input has text */}
+              {inputText.trim() && (
+                <button
+                  type="button"
+                  onClick={handleSend}
+                  disabled={isStreaming}
+                  className="w-9 h-9 rounded-full bg-[#1f1f1f] hover:bg-[#000000] text-white flex items-center justify-center transition-all cursor-pointer shadow-xs ml-0.5"
+                  title="Send message"
+                  aria-label="Send message"
+                >
+                  <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Disclaimer */}
-        <p className="text-[11.5px] text-zinc-400 text-center mt-2.5 font-normal">
-          Tanovai can make mistakes. Consider checking important information.
-        </p>
+        {/* Suggestion Prompt Items List */}
+        <div className="w-full flex flex-col items-start gap-1 pl-3 sm:pl-5">
+          {suggestions.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleSuggestionClick(item.text)}
+                className="flex items-center gap-3.5 py-2 px-2.5 text-[#1f1f1f] hover:bg-black/[0.04] rounded-xl transition-colors cursor-pointer text-[15px] font-normal group text-left w-auto"
+              >
+                <Icon className="w-4 h-4 text-[#444746] group-hover:text-[#1f1f1f] shrink-0 stroke-[1.75]" />
+                <span className="text-[#1f1f1f] group-hover:text-black font-normal">
+                  {item.text}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Notice for new users to create account */}
+        {!currentUser && (
+          <div className="w-full flex items-center gap-1.5 pl-3 sm:pl-5 mt-4 text-[13px] text-[#5f6368]">
+            <span>New here?</span>
+            <button
+              type="button"
+              onClick={() => onOpenAuth?.('signup', 'Create a free account to start searching and chatting with AI.')}
+              className="text-[#1a73e8] hover:text-[#174ea6] font-medium hover:underline cursor-pointer"
+            >
+              Create an account
+            </button>
+            <span>to start searching and chatting.</span>
+          </div>
+        )}
       </div>
     </div>
   );

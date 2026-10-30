@@ -59,7 +59,7 @@ export default function App() {
       const stored = localStorage.getItem('gemini_sidebar_open_v1');
       if (stored !== null) return stored === 'true';
     } catch {}
-    return true;
+    return false;
   });
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
 
@@ -91,13 +91,24 @@ export default function App() {
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
+  const [authPromptReason, setAuthPromptReason] = useState<string | null>(null);
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+
+  const handleOpenAuth = (mode: 'login' | 'signup' = 'login', reason: string | null = null) => {
     setAuthInitialMode(mode);
+    setAuthPromptReason(reason);
     setIsAuthOpen(true);
   };
 
   const handleAuthSuccess = (user: UserAccount) => {
     setCurrentUser(user);
+    if (pendingPrompt) {
+      const promptToRun = pendingPrompt;
+      setPendingPrompt(null);
+      setTimeout(() => {
+        executeSendMessage(promptToRun, user);
+      }, 150);
+    }
   };
 
   const handleLogout = () => {
@@ -225,6 +236,19 @@ export default function App() {
 
   // Send Message / Streaming logic
   const handleSendMessage = async (text: string) => {
+    if (!text.trim() || isStreaming) return;
+
+    // Direct each new unauthenticated user to create an account
+    if (!currentUser) {
+      setPendingPrompt(text.trim());
+      handleOpenAuth('signup', 'Create an account to start searching and chatting with AI.');
+      return;
+    }
+
+    executeSendMessage(text);
+  };
+
+  const executeSendMessage = async (text: string, _userOverride?: UserAccount) => {
     if (!text.trim() || isStreaming) return;
     setActiveView('chat');
 
@@ -538,7 +562,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative gemini-ambient-glow">
         {/* Top Bar */}
         <TopBar
           onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
@@ -549,6 +573,10 @@ export default function App() {
           onOpenSettings={() => setActiveView('customize')}
           onOpenUpgrade={() => setIsUpgradeOpen(true)}
           onOpenGetApp={() => setIsGetAppOpen(true)}
+          onNewChat={() => {
+            handleNewChat();
+            setActiveView('chat');
+          }}
           theme={settings.theme}
           onToggleTheme={handleToggleTheme}
           currentUser={currentUser}
@@ -621,7 +649,9 @@ export default function App() {
               currentModel={currentModel}
               onSelectModel={handleSelectModel}
               onOpenSettings={() => setActiveView('customize')}
+              onOpenUpgrade={() => setIsUpgradeOpen(true)}
               currentUser={currentUser}
+              onOpenAuth={handleOpenAuth}
             />
           ) : (
             <div className="flex-1 flex flex-col justify-between">
@@ -645,7 +675,8 @@ export default function App() {
                     currentModel={currentModel}
                     onSelectModel={handleSelectModel}
                     onOpenSettings={() => setActiveView('customize')}
-                    placeholder={`Ask ${currentModel}...`}
+                    onOpenUpgrade={() => setIsUpgradeOpen(true)}
+                    placeholder="Ask Gemini..."
                   />
 
                   {/* Tanovai Disclaimer */}
@@ -692,6 +723,7 @@ export default function App() {
         onClose={() => setIsAuthOpen(false)}
         onSuccess={handleAuthSuccess}
         initialMode={authInitialMode}
+        promptReason={authPromptReason}
       />
 
       <UserProfileModal

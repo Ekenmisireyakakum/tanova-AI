@@ -9,6 +9,7 @@ interface AuthModalProps {
   onClose: () => void;
   onSuccess: (user: UserAccount) => void;
   initialMode?: 'login' | 'signup';
+  promptReason?: string | null;
 }
 
 const AVATAR_COLORS = [
@@ -27,6 +28,7 @@ export function AuthModal({
   onClose,
   onSuccess,
   initialMode = 'login',
+  promptReason,
 }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
@@ -119,6 +121,13 @@ export function AuthModal({
               ? 'Access your conversations, custom preferences, and multi-AI features.'
               : 'Join Tanovai to sync chats across devices and access unified AI models.'}
           </p>
+
+          {promptReason && (
+            <div className="mt-3 px-3.5 py-2 rounded-2xl bg-blue-50 border border-blue-200/80 text-blue-900 text-xs flex items-center gap-2">
+              <GeminiSparkleIcon className="w-4 h-4 shrink-0 text-blue-600" />
+              <span className="font-medium">{promptReason}</span>
+            </div>
+          )}
 
           {/* Mode Switch Tabs */}
           <div className="mt-4 flex p-1 bg-slate-200/80 rounded-xl">

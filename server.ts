@@ -270,11 +270,28 @@ async function executeCandidateStream(
     if (!cand.model.includes('3.8') && !cand.model.includes('4-argon') && typeof temperature === 'number') {
       config.temperature = temperature;
     }
-    const responseStream = await ai.models.generateContentStream({
-      model: cand.model,
-      contents,
-      config: Object.keys(config).length > 0 ? config : undefined,
-    });
+    let modelName = cand.model;
+    if (modelName === 'gemini-3.1-pro') modelName = 'gemini-2.5-pro';
+    if (modelName === 'gemini-4-argon') modelName = 'gemini-3.8-flash';
+
+    let responseStream;
+    try {
+      responseStream = await ai.models.generateContentStream({
+        model: modelName,
+        contents,
+        config: Object.keys(config).length > 0 ? config : undefined,
+      });
+    } catch (err: any) {
+      if (modelName !== 'gemini-3.8-flash') {
+        responseStream = await ai.models.generateContentStream({
+          model: 'gemini-3.8-flash',
+          contents,
+          config: Object.keys(config).length > 0 ? config : undefined,
+        });
+      } else {
+        throw err;
+      }
+    }
     for await (const chunk of responseStream) {
       const text = chunk.text;
       if (text) onChunk(text);
