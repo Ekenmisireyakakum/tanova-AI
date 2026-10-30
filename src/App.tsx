@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChatMessage, ChatSession, ProviderId, AppSettings, ServerStatus, ThemeMode } from './types';
+import { ChatMessage, ChatSession, ProviderId, AppSettings, ServerStatus, ThemeMode, UserAccount } from './types';
 import {
   loadActiveModelSelection,
   loadActiveSessionId,
   loadSessions,
   loadSettings,
+  loadCurrentUser,
+  logoutUser,
   saveActiveModelSelection,
   saveActiveSessionId,
   saveSessions,
@@ -18,6 +20,8 @@ import { ChatInput } from './components/ChatInput';
 import { SettingsModal } from './components/SettingsModal';
 import { UpgradeModal } from './components/UpgradeModal';
 import { GetAppModal } from './components/GetAppModal';
+import { AuthModal } from './components/AuthModal';
+import { UserProfileModal } from './components/UserProfileModal';
 
 export default function App() {
   // State management
@@ -35,8 +39,27 @@ export default function App() {
     groqEnvKeyAvailable: true,
     openrouterEnvKeyAvailable: true,
   });
-  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => window.innerWidth >= 1024);
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('gemini_sidebar_open_v1');
+      if (stored !== null) return stored === 'true';
+    } catch {}
+    return true;
+  });
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
+
+  // Persist sidebar state
+  useEffect(() => {
+    try {
+      localStorage.setItem('gemini_sidebar_open_v1', String(isSidebarOpen));
+    } catch {}
+  }, [isSidebarOpen]);
+
+  // User Authentication & Account state
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(() => loadCurrentUser());
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authInitialMode, setAuthInitialMode] = useState<'login' | 'signup'>('login');
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   // Modals
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -44,6 +67,20 @@ export default function App() {
   const [isGetAppOpen, setIsGetAppOpen] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const handleOpenAuth = (mode: 'login' | 'signup' = 'login') => {
+    setAuthInitialMode(mode);
+    setIsAuthOpen(true);
+  };
+
+  const handleAuthSuccess = (user: UserAccount) => {
+    setCurrentUser(user);
+  };
+
+  const handleLogout = () => {
+    logoutUser();
+    setCurrentUser(null);
+  };
 
   // Apply theme to document root (dark class, attributes, and styles)
   useEffect(() => {
@@ -279,8 +316,10 @@ export default function App() {
           model: activeModel,
           messages: conversationHistory,
           apiKey: settings.apiKeys[activeProvider],
+          apiKeys: settings.apiKeys,
           temperature: settings.temperature,
           systemInstruction: settings.systemPrompt,
+          autoFallback: settings.autoFallback !== false,
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -322,6 +361,28 @@ export default function App() {
               const data = JSON.parse(trimmed.slice(6));
               if (data.error) {
                 throw new Error(data.error);
+              }
+              if (data.fallback) {
+                setSessions((prev) =>
+                  prev.map((s) => {
+                    if (s.id === targetSessionId) {
+                      return {
+                        ...s,
+                        messages: s.messages.map((m) =>
+                          m.id === assistantMessageId
+                            ? {
+                                ...m,
+                                fallback: data.fallback,
+                                provider: data.fallback.fallbackProvider,
+                                model: data.fallback.fallbackModel,
+                              }
+                            : m
+                        ),
+                      };
+                    }
+                    return s;
+                  })
+                );
               }
               if (data.text) {
                 accumulatedText += data.text;
@@ -465,13 +526,17 @@ export default function App() {
         geminiEnvAvailable={geminiEnvAvailable}
         theme={settings.theme}
         onToggleTheme={handleToggleTheme}
+        currentUser={currentUser}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenAuth={handleOpenAuth}
+        onOpenStudents={handleNewChat}
       />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden relative">
         {/* Top Bar */}
         <TopBar
-          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
           isSidebarOpen={isSidebarOpen}
           currentProvider={currentProvider}
           currentModel={currentModel}
@@ -484,6 +549,9 @@ export default function App() {
           onOpenGetApp={() => setIsGetAppOpen(true)}
           theme={settings.theme}
           onToggleTheme={handleToggleTheme}
+          currentUser={currentUser}
+          onOpenAuth={handleOpenAuth}
+          onOpenProfile={() => setIsProfileOpen(true)}
         />
 
         {/* View Switch: Landing Screen vs Chat Interface */}
@@ -499,6 +567,7 @@ export default function App() {
               geminiEnvAvailable={geminiEnvAvailable}
               serverStatus={serverStatus}
               onOpenSettings={() => setIsSettingsOpen(true)}
+              currentUser={currentUser}
             />
           ) : (
             <div className="flex-1 flex flex-col justify-between">
@@ -508,6 +577,7 @@ export default function App() {
                 isStreaming={isStreaming}
                 onRegenerate={handleRegenerate}
                 onOpenSettings={() => setIsSettingsOpen(true)}
+                onSelectModel={handleSelectModel}
               />
 
               {/* Bottom Sticky Input Bar */}
@@ -527,9 +597,9 @@ export default function App() {
                     placeholder={`Ask ${currentModel}...`}
                   />
 
-                  {/* Gemini Disclaimer */}
+                  {/* Tanovai Disclaimer */}
                   <p className="text-[11px] text-zinc-500 dark:text-[#75777a] text-center mt-2 font-normal">
-                    Gemini and AI models may display inaccurate info, including about people, so double-check responses.
+                    Tanovai and AI models may display inaccurate info, including about people, so double-check responses.
                   </p>
                 </div>
               </div>
@@ -566,6 +636,23 @@ export default function App() {
       <GetAppModal
         isOpen={isGetAppOpen}
         onClose={() => setIsGetAppOpen(false)}
+      />
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onSuccess={handleAuthSuccess}
+        initialMode={authInitialMode}
+      />
+
+      <UserProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        onOpenAuth={handleOpenAuth}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        sessionCount={sessions.length}
       />
     </div>
   );

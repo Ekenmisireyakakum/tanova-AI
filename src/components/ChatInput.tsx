@@ -29,7 +29,7 @@ export function ChatInput({
   geminiEnvAvailable,
   serverStatus,
   onOpenSettings,
-  placeholder = 'Ask Gemini, Groq, or OpenRouter...',
+  placeholder = 'Ask Tanovai anything...',
   isLanding = false,
 }: ChatInputProps) {
   const [inputText, setInputText] = useState('');

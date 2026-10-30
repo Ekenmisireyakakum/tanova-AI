@@ -22,6 +22,34 @@ interface ChatMessagesViewProps {
   isStreaming: boolean;
   onRegenerate: () => void;
   onOpenSettings: () => void;
+  onSelectModel?: (provider: any, model: string) => void;
+}
+
+function cleanDisplayError(error: string): string {
+  if (!error) return 'An unexpected error occurred.';
+  let text = error;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed?.error?.message) {
+        text = parsed.error.message;
+      } else if (parsed?.message) {
+        text = parsed.message;
+      } else {
+        break;
+      }
+    } catch {
+      break;
+    }
+  }
+
+  if (text.includes('503') || text.includes('UNAVAILABLE') || text.toLowerCase().includes('high demand')) {
+    return 'This model is currently experiencing temporary high demand (503). Spikes in demand are usually temporary. Please try again or switch to Gemini 3.1 Flash Lite.';
+  }
+  if (text.includes('429') || text.includes('RESOURCE_EXHAUSTED')) {
+    return 'Rate limit reached (429). Please wait a moment before sending another message, or try Gemini 3.1 Flash Lite.';
+  }
+  return text.trim();
 }
 
 export function ChatMessagesView({
@@ -29,6 +57,7 @@ export function ChatMessagesView({
   isStreaming,
   onRegenerate,
   onOpenSettings,
+  onSelectModel,
 }: ChatMessagesViewProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [speakingId, setSpeakingId] = useState<string | null>(null);
@@ -139,29 +168,44 @@ export function ChatMessagesView({
                 )}
               </div>
 
-              {/* Message Body or Error (Strictly monochrome) */}
+              {/* Fallback Notice Badge */}
+              {message.fallback && (
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 mb-2.5 rounded-lg bg-zinc-100 dark:bg-[#1c1c1c] text-zinc-800 dark:text-zinc-200 text-[11.5px] border border-zinc-200 dark:border-zinc-800 shadow-2xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                  <span>
+                    Auto-Fallback: Handled by <strong className="font-medium text-black dark:text-white">{message.fallback.fallbackModel}</strong> due to {message.fallback.reason.toLowerCase()} on {message.fallback.originalModel}
+                  </span>
+                </div>
+              )}
+
+              {/* Message Body or Error */}
               {message.error ? (
-                <div className="p-4 rounded-2xl bg-zinc-100 dark:bg-[#141414] border border-black dark:border-white text-black dark:text-white text-sm">
-                  <div className="flex items-start gap-2.5">
-                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                <div className="p-4 rounded-2xl bg-zinc-100 dark:bg-[#141414] border border-zinc-300 dark:border-zinc-700 text-black dark:text-white text-sm shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-zinc-700 dark:text-zinc-300" />
                     <div className="flex-1">
-                      <p className="font-semibold">Request Failed</p>
-                      <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                        {message.error}
+                      <p className="font-semibold text-sm">Request Failed</p>
+                      <p className="mt-1 text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed font-normal">
+                        {cleanDisplayError(message.error)}
                       </p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={onOpenSettings}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-xs font-medium transition-colors"
-                        >
-                          <Key className="w-3.5 h-3.5" />
-                          <span>Configure API Keys</span>
-                        </button>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        {provider === 'gemini' && message.model !== 'gemini-3.1-flash-lite' && onSelectModel && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onSelectModel('gemini', 'gemini-3.1-flash-lite');
+                              setTimeout(() => onRegenerate(), 100);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-xs font-medium transition-colors cursor-pointer"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Switch to Flash Lite & Retry</span>
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={onRegenerate}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white text-xs font-medium transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white text-xs font-medium transition-colors cursor-pointer"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           <span>Retry</span>

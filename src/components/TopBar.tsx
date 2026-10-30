@@ -1,8 +1,9 @@
 import React from 'react';
-import { Menu, Settings, Download, Sparkles, Sun, Moon } from 'lucide-react';
-import { ProviderId, ServerStatus, ThemeMode } from '../types';
-import { GeminiLogo } from './GeminiLogo';
+import { Menu, Settings, Download, Sparkles, Sun, Moon, LogIn } from 'lucide-react';
+import { ProviderId, ServerStatus, ThemeMode, UserAccount } from '../types';
+import { TanovaiLogo } from './GeminiLogo';
 import { ModelSelector } from './ModelSelector';
+import { UserAvatar } from './Sidebar';
 
 interface TopBarProps {
   onToggleSidebar: () => void;
@@ -18,6 +19,9 @@ interface TopBarProps {
   onOpenGetApp: () => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  currentUser?: UserAccount | null;
+  onOpenAuth?: (mode: 'login' | 'signup') => void;
+  onOpenProfile?: () => void;
 }
 
 export function TopBar({
@@ -34,6 +38,9 @@ export function TopBar({
   onOpenGetApp,
   theme,
   onToggleTheme,
+  currentUser,
+  onOpenAuth,
+  onOpenProfile,
 }: TopBarProps) {
   return (
     <header className="h-14 border-b border-zinc-200 dark:border-[#262626] bg-white/95 dark:bg-black/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between sticky top-0 z-30 transition-colors">
@@ -42,13 +49,14 @@ export function TopBar({
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
-          title="Toggle sidebar"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
+          title={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <GeminiLogo />
+        {!isSidebarOpen && <TanovaiLogo />}
 
         <div className="hidden sm:block ml-1">
           <ModelSelector
@@ -82,7 +90,7 @@ export function TopBar({
         <button
           type="button"
           onClick={onToggleTheme}
-          className="w-9 h-9 rounded-full flex items-center justify-center text-black dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition-all shadow-2xs"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-black dark:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition-all shadow-2xs cursor-pointer"
           title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} mode`}
           aria-label="Toggle theme"
         >
@@ -97,7 +105,7 @@ export function TopBar({
         <button
           type="button"
           onClick={onOpenGetApp}
-          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:text-black dark:hover:text-white bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 transition-colors"
+          className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-zinc-800 dark:text-zinc-200 hover:text-black dark:hover:text-white bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-zinc-200 dark:border-zinc-800 transition-colors cursor-pointer"
         >
           <Download className="w-3.5 h-3.5" />
           <span>Get app</span>
@@ -107,30 +115,41 @@ export function TopBar({
         <button
           type="button"
           onClick={onOpenUpgrade}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-black dark:text-white bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 shadow-2xs transition-all"
+          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-black dark:text-white bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 shadow-2xs transition-all cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-current" />
-          <span className="hidden xs:inline">Try Advanced</span>
+          <span className="hidden xs:inline">Tanovai Pro</span>
         </button>
 
         {/* Settings button */}
         <button
           type="button"
           onClick={onOpenSettings}
-          className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+          className="w-9 h-9 rounded-full flex items-center justify-center text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors cursor-pointer"
           title="Settings & API Keys"
         >
           <Settings className="w-4 h-4" />
         </button>
 
-        {/* User profile avatar (Pure black/white) */}
-        <div
-          onClick={onOpenSettings}
-          className="w-8 h-8 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center text-xs font-semibold cursor-pointer shadow-2xs border border-zinc-300 dark:border-zinc-700 shrink-0"
-          title="Account & Keys"
-        >
-          U
-        </div>
+        {/* User profile avatar or Sign In button */}
+        {currentUser ? (
+          <div
+            onClick={onOpenProfile || onOpenSettings}
+            className="cursor-pointer hover:opacity-85 transition-opacity"
+            title={`Account: ${currentUser.name}`}
+          >
+            <UserAvatar user={currentUser} className="w-8 h-8" />
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onOpenAuth?.('login')}
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-black text-white dark:bg-white dark:text-black hover:opacity-90 transition-opacity cursor-pointer shadow-2xs"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span>Sign In</span>
+          </button>
+        )}
       </div>
     </header>
   );

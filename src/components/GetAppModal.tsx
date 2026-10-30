@@ -31,7 +31,7 @@ export function GetAppModal({ isOpen, onClose }: GetAppModalProps) {
         <div className="p-6 space-y-5">
           <div className="text-center">
             <h3 className="text-lg font-medium text-black dark:text-white font-['Google_Sans']">
-              Install Gemini Multi-Model on Any Device
+              Install Tanovai on Any Device
             </h3>
             <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 max-w-sm mx-auto">
               Enjoy fullscreen, offline caching, and instant AI access right from your home screen or dock.
@@ -46,7 +46,7 @@ export function GetAppModal({ isOpen, onClose }: GetAppModalProps) {
               <div className="text-xs">
                 <h4 className="font-semibold text-black dark:text-white">Desktop (Chrome / Edge / Safari)</h4>
                 <p className="text-zinc-600 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                  Click the install icon in your browser address bar or menu: <strong className="text-black dark:text-white">Install Gemini Multi-Provider</strong>.
+                  Click the install icon in your browser address bar or menu: <strong className="text-black dark:text-white">Install Tanovai AI</strong>.
                 </p>
               </div>
             </div>

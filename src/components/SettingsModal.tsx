@@ -1,25 +1,20 @@
 import React, { useState } from 'react';
 import {
   X,
-  Key,
   Sliders,
   Database,
-  Eye,
-  EyeOff,
+  ShieldCheck,
   CheckCircle2,
-  AlertCircle,
-  ExternalLink,
   Trash2,
   Download,
-  Loader2,
   Sparkles,
   Zap,
   Globe,
-  Info,
   Sun,
   Moon,
+  Lock,
 } from 'lucide-react';
-import { ApiKeys, AppSettings, ChatSession, ProviderId, ServerStatus, ThemeMode } from '../types';
+import { AppSettings, ChatSession, ServerStatus, ThemeMode } from '../types';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -44,11 +39,8 @@ export function SettingsModal({
   onClearAllSessions,
   onSelectTheme,
 }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'keys' | 'params' | 'data'>('keys');
+  const [activeTab, setActiveTab] = useState<'providers' | 'params' | 'data'>('providers');
   const [formData, setFormData] = useState<AppSettings>(settings);
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({});
-  const [testingKey, setTestingKey] = useState<string | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, { success: boolean; message: string }>>({});
   const [confirmClear, setConfirmClear] = useState(false);
 
   React.useEffect(() => {
@@ -56,62 +48,6 @@ export function SettingsModal({
   }, [settings]);
 
   if (!isOpen) return null;
-
-  const toggleShowKey = (provider: string) => {
-    setShowKeys((prev) => ({ ...prev, [provider]: !prev[provider] }));
-  };
-
-  const handleKeyChange = (provider: keyof ApiKeys, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      apiKeys: {
-        ...prev.apiKeys,
-        [provider]: value,
-      },
-    }));
-    setTestResults((prev) => {
-      const copy = { ...prev };
-      delete copy[provider];
-      return copy;
-    });
-  };
-
-  const handleTestKey = async (provider: ProviderId) => {
-    setTestingKey(provider);
-    setTestResults((prev) => {
-      const copy = { ...prev };
-      delete copy[provider];
-      return copy;
-    });
-
-    try {
-      const key = formData.apiKeys[provider];
-      const res = await fetch('/api/test-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey: key }),
-      });
-      const data = await res.json();
-      if (res.ok && data.valid) {
-        setTestResults((prev) => ({
-          ...prev,
-          [provider]: { success: true, message: data.message || 'Key connected successfully!' },
-        }));
-      } else {
-        setTestResults((prev) => ({
-          ...prev,
-          [provider]: { success: false, message: data.error || 'Invalid API key or network error' },
-        }));
-      }
-    } catch (err: any) {
-      setTestResults((prev) => ({
-        ...prev,
-        [provider]: { success: false, message: err?.message || 'Connection error' },
-      }));
-    } finally {
-      setTestingKey(null);
-    }
-  };
 
   const handleSelectTheme = (theme: ThemeMode) => {
     setFormData((prev) => ({ ...prev, theme }));
@@ -127,7 +63,7 @@ export function SettingsModal({
     const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(sessions, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `gemini-chat-export-${new Date().toISOString().slice(0, 10)}.json`);
+    downloadAnchor.setAttribute('download', `tanovai-chat-export-${new Date().toISOString().slice(0, 10)}.json`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -144,30 +80,30 @@ export function SettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Tabs (Strict monochrome) */}
+        {/* Modal Tabs */}
         <div className="flex border-b border-zinc-200 dark:border-[#262626] px-6 bg-zinc-50/60 dark:bg-[#121212]/60">
           <button
             type="button"
-            onClick={() => setActiveTab('keys')}
-            className={`flex items-center gap-2 py-3 px-3 text-xs font-semibold border-b-2 transition-colors ${
-              activeTab === 'keys'
+            onClick={() => setActiveTab('providers')}
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'providers'
                 ? 'border-black dark:border-white text-black dark:text-white'
                 : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white'
             }`}
           >
-            <Key className="w-4 h-4" />
-            <span>API Keys</span>
+            <ShieldCheck className="w-4 h-4" />
+            <span>AI Providers & Status</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('params')}
-            className={`flex items-center gap-2 py-3 px-3 text-xs font-semibold border-b-2 transition-colors ${
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
               activeTab === 'params'
                 ? 'border-black dark:border-white text-black dark:text-white'
                 : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white'
@@ -179,7 +115,7 @@ export function SettingsModal({
           <button
             type="button"
             onClick={() => setActiveTab('data')}
-            className={`flex items-center gap-2 py-3 px-3 text-xs font-semibold border-b-2 transition-colors ${
+            className={`flex items-center gap-2 py-3 px-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
               activeTab === 'data'
                 ? 'border-black dark:border-white text-black dark:text-white'
                 : 'border-transparent text-zinc-500 dark:text-zinc-400 hover:text-black dark:hover:text-white'
@@ -192,227 +128,98 @@ export function SettingsModal({
 
         {/* Modal Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* TAB 1: API KEYS */}
-          {activeTab === 'keys' && (
-            <div className="space-y-6">
-              <div className="p-3.5 rounded-2xl bg-zinc-100 dark:bg-[#141414] border border-zinc-200 dark:border-[#262626] flex items-start gap-3">
-                <Info className="w-5 h-5 text-black dark:text-white shrink-0 mt-0.5" />
-                <div className="text-xs text-zinc-700 dark:text-zinc-300 leading-relaxed">
-                  Keys are stored exclusively in your browser’s <span className="font-semibold text-black dark:text-white">localStorage</span>. Requests are proxied securely with zero logging.
+          {/* TAB 1: SYSTEM & AI PROVIDERS (READ-ONLY, NO RAW KEYS, NO INPUTS, NO TESTING) */}
+          {activeTab === 'providers' && (
+            <div className="space-y-4">
+              {/* Security Policy Notice */}
+              <div className="p-4 rounded-2xl bg-zinc-100 dark:bg-[#141414] border border-zinc-200 dark:border-[#262626] flex items-start gap-3">
+                <Lock className="w-5 h-5 text-black dark:text-white shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-black dark:text-white">
+                    Managed System Credentials
+                  </div>
+                  <div className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                    All AI provider credentials are pre-configured, encrypted, and managed directly by the server. To safeguard system security and data integrity, users are not permitted to view, edit, retrieve, or test raw API keys.
+                  </div>
                 </div>
               </div>
 
-              {/* 1. Google Gemini Key */}
-              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-[#262626] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-black dark:text-white">
-                    <Sparkles className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Google Gemini</span>
-                    {geminiEnvAvailable && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
-                        Active via AI Studio
+              {/* 1. Google Gemini Provider Card */}
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-[#262626] flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-zinc-100 dark:bg-[#1c1c1c] text-black dark:text-white shrink-0">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-black dark:text-white">Google Gemini</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Online & Managed
                       </span>
-                    )}
-                  </div>
-                  <a
-                    href="https://aistudio.google.com/app/apikey"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-black dark:text-white underline hover:opacity-80 flex items-center gap-1 font-semibold"
-                  >
-                    <span>Get Key</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-
-                {geminiEnvAvailable ? (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    A default Gemini API key is already active on the server. You can immediately chat with Gemini models, or enter your own key below to override it.
-                  </p>
-                ) : (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    Enter your Google AI Studio API key (starts with <code className="font-mono text-black dark:text-white">AIzaSy...</code> or <code className="font-mono text-black dark:text-white">AQ....</code>).
-                  </p>
-                )}
-
-                <div className="relative">
-                  <input
-                    type={showKeys['gemini'] ? 'text' : 'password'}
-                    placeholder={geminiEnvAvailable ? 'Active via server (enter custom key to override)' : 'AIzaSy... or AQ....'}
-                    value={formData.apiKeys.gemini}
-                    onChange={(e) => handleKeyChange('gemini', e.target.value)}
-                    className="w-full pl-3.5 pr-20 py-2 text-xs bg-white dark:bg-[#0a0a0a] text-black dark:text-white rounded-xl border border-zinc-300 dark:border-[#262626] focus:outline-none focus:border-black dark:focus:border-white"
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => toggleShowKey('gemini')}
-                      className="p-1 text-zinc-400 hover:text-black dark:text-zinc-500 dark:hover:text-white"
-                      title={showKeys['gemini'] ? 'Hide' : 'Show'}
-                    >
-                      {showKeys['gemini'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={testingKey === 'gemini'}
-                      onClick={() => handleTestKey('gemini')}
-                      className="px-2 py-1 text-[11px] bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white rounded-lg transition-colors font-medium"
-                    >
-                      {testingKey === 'gemini' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Test'}
-                    </button>
+                    </div>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                      Gemini 3.8 Flash, 3.1 Flash Lite, and 2.5 Pro reasoning models provisioned via Google AI Studio.
+                    </p>
                   </div>
                 </div>
-
-                {testResults['gemini'] && (
-                  <div className="flex items-center gap-2 text-xs text-black dark:text-white font-medium">
-                    {testResults['gemini'].success ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-                    <span>{testResults['gemini'].message}</span>
-                  </div>
-                )}
+                <div className="text-right shrink-0 pl-3">
+                  <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">
+                    System Verified
+                  </span>
+                </div>
               </div>
 
-              {/* 2. Groq Key */}
-              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-[#262626] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-black dark:text-white">
-                    <Zap className="w-4 h-4" />
-                    <span className="text-sm font-semibold">Groq</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
-                      Ultra-Fast LPU
-                    </span>
-                    {serverStatus?.groqEnvKeyAvailable && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
-                        Active via Server
+              {/* 2. Groq LPU Card */}
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-[#262626] flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-zinc-100 dark:bg-[#1c1c1c] text-black dark:text-white shrink-0">
+                    <Zap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-black dark:text-white">Groq LPU</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Online & Managed
                       </span>
-                    )}
-                  </div>
-                  <a
-                    href="https://console.groq.com/keys"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-black dark:text-white underline hover:opacity-80 flex items-center gap-1 font-semibold"
-                  >
-                    <span>Get Free Key</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-
-                {serverStatus?.groqEnvKeyAvailable ? (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    A default Groq API key is already active on the server (~800 tokens/sec). You can immediately chat with Groq models, or enter your own key below to override it.
-                  </p>
-                ) : (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    Allows instant access to Llama 3.3 70B, Llama 3.1 8B, and DeepSeek R1 Distill at ~800 tokens/sec.
-                  </p>
-                )}
-
-                <div className="relative">
-                  <input
-                    type={showKeys['groq'] ? 'text' : 'password'}
-                    placeholder={serverStatus?.groqEnvKeyAvailable ? 'Active via server (enter custom key to override)' : 'gsk_...'}
-                    value={formData.apiKeys.groq}
-                    onChange={(e) => handleKeyChange('groq', e.target.value)}
-                    className="w-full pl-3.5 pr-20 py-2 text-xs bg-white dark:bg-[#0a0a0a] text-black dark:text-white rounded-xl border border-zinc-300 dark:border-[#262626] focus:outline-none focus:border-black dark:focus:border-white"
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => toggleShowKey('groq')}
-                      className="p-1 text-zinc-400 hover:text-black dark:text-zinc-500 dark:hover:text-white"
-                      title={showKeys['groq'] ? 'Hide' : 'Show'}
-                    >
-                      {showKeys['groq'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={testingKey === 'groq' || (!formData.apiKeys.groq && !serverStatus?.groqEnvKeyAvailable)}
-                      onClick={() => handleTestKey('groq')}
-                      className="px-2 py-1 text-[11px] bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white rounded-lg transition-colors font-medium"
-                    >
-                      {testingKey === 'groq' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Test'}
-                    </button>
+                    </div>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                      Ultra-fast inference (~800 tokens/sec) for Llama 3.3 70B, Llama 3.1 8B, and DeepSeek R1 Distill.
+                    </p>
                   </div>
                 </div>
-
-                {testResults['groq'] && (
-                  <div className="flex items-center gap-2 text-xs text-black dark:text-white font-medium">
-                    {testResults['groq'].success ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-                    <span>{testResults['groq'].message}</span>
-                  </div>
-                )}
+                <div className="text-right shrink-0 pl-3">
+                  <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">
+                    System Verified
+                  </span>
+                </div>
               </div>
 
-              {/* 3. OpenRouter Key */}
-              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-[#262626] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-black dark:text-white">
-                    <Globe className="w-4 h-4" />
-                    <span className="text-sm font-semibold">OpenRouter</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
-                      200+ Models
-                    </span>
-                    {serverStatus?.openrouterEnvKeyAvailable && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white border border-zinc-300 dark:border-zinc-700 font-semibold">
-                        Active via Server
+              {/* 3. OpenRouter Card */}
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-[#262626] flex items-center justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-zinc-100 dark:bg-[#1c1c1c] text-black dark:text-white shrink-0">
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-black dark:text-white">OpenRouter Gateway</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-medium flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Online & Managed
                       </span>
-                    )}
-                  </div>
-                  <a
-                    href="https://openrouter.ai/keys"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-xs text-black dark:text-white underline hover:opacity-80 flex items-center gap-1 font-semibold"
-                  >
-                    <span>Get Key</span>
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-
-                {serverStatus?.openrouterEnvKeyAvailable ? (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                    An OpenRouter API key is already active on the server. You can immediately chat with 200+ OpenRouter models, or enter your own key below to override it.
-                  </p>
-                ) : (
-                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                    Connect to Claude 3.5 Sonnet, DeepSeek R1, GPT-4o Mini, and hundreds of open/proprietary LLMs.
-                  </p>
-                )}
-
-                <div className="relative">
-                  <input
-                    type={showKeys['openrouter'] ? 'text' : 'password'}
-                    placeholder={serverStatus?.openrouterEnvKeyAvailable ? 'Active via server (enter custom key to override)' : 'sk-or-v1-...'}
-                    value={formData.apiKeys.openrouter}
-                    onChange={(e) => handleKeyChange('openrouter', e.target.value)}
-                    className="w-full pl-3.5 pr-20 py-2 text-xs bg-white dark:bg-[#0a0a0a] text-black dark:text-white rounded-xl border border-zinc-300 dark:border-[#262626] focus:outline-none focus:border-black dark:focus:border-white"
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => toggleShowKey('openrouter')}
-                      className="p-1 text-zinc-400 hover:text-black dark:text-zinc-500 dark:hover:text-white"
-                      title={showKeys['openrouter'] ? 'Hide' : 'Show'}
-                    >
-                      {showKeys['openrouter'] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={testingKey === 'openrouter' || (!formData.apiKeys.openrouter && !serverStatus?.openrouterEnvKeyAvailable)}
-                      onClick={() => handleTestKey('openrouter')}
-                      className="px-2 py-1 text-[11px] bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white rounded-lg transition-colors font-medium"
-                    >
-                      {testingKey === 'openrouter' ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Test'}
-                    </button>
+                    </div>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                      Unified gateway routing across Claude 3.5 Sonnet, DeepSeek R1, GPT-4o, and hundreds of top models.
+                    </p>
                   </div>
                 </div>
-
-                {testResults['openrouter'] && (
-                  <div className="flex items-center gap-2 text-xs text-black dark:text-white font-medium">
-                    {testResults['openrouter'].success ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-                    <span>{testResults['openrouter'].message}</span>
-                  </div>
-                )}
+                <div className="text-right shrink-0 pl-3">
+                  <span className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-1 rounded-lg">
+                    System Verified
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -420,20 +227,20 @@ export function SettingsModal({
           {/* TAB 2: THEME & PARAMETERS */}
           {activeTab === 'params' && (
             <div className="space-y-6">
-              {/* Theme Preference (Pure Monochrome White & Black) */}
+              {/* Theme Preference */}
               <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-[#262626] space-y-3">
                 <label className="text-sm font-semibold text-black dark:text-white block">
                   Interface Theme
                 </label>
                 <span className="text-xs text-zinc-600 dark:text-zinc-400 block">
-                  Strictly white and black monochrome palette.
+                  Monochrome high-contrast design.
                 </span>
 
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <button
                     type="button"
                     onClick={() => handleSelectTheme('light')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                       formData.theme === 'light'
                         ? 'border-2 border-black bg-white text-black shadow-sm'
                         : 'border-zinc-300 dark:border-zinc-800 bg-zinc-100 dark:bg-[#1a1a1a] text-zinc-700 dark:text-zinc-400 hover:border-black dark:hover:border-white'
@@ -446,7 +253,7 @@ export function SettingsModal({
                   <button
                     type="button"
                     onClick={() => handleSelectTheme('dark')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all ${
+                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
                       formData.theme === 'dark'
                         ? 'border-2 border-white bg-black text-white shadow-sm'
                         : 'border-zinc-300 dark:border-zinc-800 bg-zinc-100 dark:bg-[#1a1a1a] text-zinc-700 dark:text-zinc-400 hover:border-black dark:hover:border-white'
@@ -503,6 +310,29 @@ export function SettingsModal({
                   className="w-full p-3 text-xs bg-white dark:bg-[#0a0a0a] text-black dark:text-white rounded-xl border border-zinc-300 dark:border-[#262626] focus:outline-none focus:border-black dark:focus:border-white leading-relaxed resize-none"
                 />
               </div>
+
+              {/* Universal Demand Spike Fallback */}
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-[#121212] border border-zinc-200 dark:border-[#262626]">
+                <label className="flex items-start justify-between cursor-pointer gap-3">
+                  <div>
+                    <span className="text-sm font-semibold text-black dark:text-white flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Universal Demand Spike Fallback</span>
+                    </span>
+                    <span className="text-xs text-zinc-600 dark:text-zinc-400 block mt-1 leading-relaxed">
+                      Automatically route to a linked backup model or available provider if your selected model experiences a 503 high demand spike, rate limits, or temporary outages.
+                    </span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.autoFallback !== false}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, autoFallback: e.target.checked }))
+                    }
+                    className="w-4 h-4 mt-1 accent-black dark:accent-white cursor-pointer rounded shrink-0"
+                  />
+                </label>
+              </div>
             </div>
           )}
 
@@ -518,7 +348,7 @@ export function SettingsModal({
                   type="button"
                   onClick={handleExportData}
                   disabled={sessions.length === 0}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white text-xs font-semibold transition-colors disabled:opacity-40"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white text-xs font-semibold transition-colors disabled:opacity-40 cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
                   <span>Export ({sessions.length})</span>
@@ -538,14 +368,14 @@ export function SettingsModal({
                         onClearAllSessions();
                         setConfirmClear(false);
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-xs font-semibold"
+                      className="px-3 py-1.5 rounded-xl bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-xs font-semibold cursor-pointer"
                     >
                       Confirm Delete
                     </button>
                     <button
                       type="button"
                       onClick={() => setConfirmClear(false)}
-                      className="px-2 py-1 text-xs text-zinc-500 hover:text-black dark:hover:text-white"
+                      className="px-2 py-1 text-xs text-zinc-500 hover:text-black dark:hover:text-white cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -555,7 +385,7 @@ export function SettingsModal({
                     type="button"
                     onClick={() => setConfirmClear(true)}
                     disabled={sessions.length === 0}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white text-xs font-semibold transition-colors disabled:opacity-40"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-black dark:text-white text-xs font-semibold transition-colors disabled:opacity-40 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                     <span>Clear All</span>
@@ -571,14 +401,14 @@ export function SettingsModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-xl hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors"
+            className="px-4 py-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white rounded-xl hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-5 py-2 text-xs font-semibold text-white bg-black hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 rounded-xl transition-colors shadow-2xs"
+            className="px-5 py-2 text-xs font-semibold text-white bg-black hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 rounded-xl transition-colors shadow-2xs cursor-pointer"
           >
             Save Changes
           </button>

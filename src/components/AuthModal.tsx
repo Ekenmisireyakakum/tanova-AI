@@ -1,0 +1,347 @@
+import React, { useState } from 'react';
+import { X, Mail, Lock, User, Eye, EyeOff, Sparkles, Check, ArrowRight, ShieldCheck } from 'lucide-react';
+import { UserAccount } from '../types';
+import { loginUser, registerUser, DEFAULT_DEMO_USER, saveCurrentUser } from '../utils/storage';
+import { TanovaiLogo, GeminiSparkleIcon } from './GeminiLogo';
+
+interface AuthModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (user: UserAccount) => void;
+  initialMode?: 'login' | 'signup';
+}
+
+const AVATAR_COLORS = [
+  '#4285F4', // Google Blue
+  '#EA4335', // Google Red
+  '#FBBC04', // Google Yellow
+  '#34A853', // Google Green
+  '#9B72CB', // Gemini Purple
+  '#10B981', // Emerald
+  '#6366F1', // Indigo
+  '#EC4899', // Pink
+];
+
+export function AuthModal({
+  isOpen,
+  onClose,
+  onSuccess,
+  initialMode = 'login',
+}: AuthModalProps) {
+  const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [name, setName] = useState('');
+  const [avatarColor, setAvatarColor] = useState(AVATAR_COLORS[0]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Sync mode when initialMode changes
+  React.useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setError(null);
+    }
+  }, [isOpen, initialMode]);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    setTimeout(() => {
+      if (mode === 'login') {
+        const res = loginUser(email, password);
+        if (!res.success || !res.user) {
+          setError(res.error || 'Failed to sign in');
+          setLoading(false);
+          return;
+        }
+        setLoading(false);
+        onSuccess(res.user);
+        onClose();
+      } else {
+        if (password !== confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+        const res = registerUser(name, email, password, avatarColor);
+        if (!res.success || !res.user) {
+          setError(res.error || 'Failed to create account');
+          setLoading(false);
+          return;
+        }
+        setLoading(false);
+        onSuccess(res.user);
+        onClose();
+      }
+    }, 200);
+  };
+
+  const handleDemoLogin = () => {
+    saveCurrentUser(DEFAULT_DEMO_USER);
+    onSuccess(DEFAULT_DEMO_USER);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-[#121214] rounded-3xl border border-zinc-200 dark:border-[#262626] shadow-2xl overflow-hidden flex flex-col text-black dark:text-white transition-all">
+        {/* Header */}
+        <div className="relative p-6 pb-4 border-b border-zinc-200 dark:border-[#262626] bg-zinc-50 dark:bg-[#18181b]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+            title="Close"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-center gap-2 mb-2">
+            <TanovaiLogo />
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium">
+              Account
+            </span>
+          </div>
+
+          <h2 className="text-xl font-semibold tracking-tight font-['Google_Sans']">
+            {mode === 'login' ? 'Sign in to Tanovai' : 'Create your Tanovai account'}
+          </h2>
+          <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+            {mode === 'login'
+              ? 'Access your conversations, custom preferences, and multi-AI features.'
+              : 'Join Tanovai to sync chats across devices and access unified AI models.'}
+          </p>
+
+          {/* Mode Switch Tabs */}
+          <div className="mt-4 flex p-1 bg-zinc-200/80 dark:bg-zinc-800/80 rounded-xl">
+            <button
+              type="button"
+              onClick={() => {
+                setMode('login');
+                setError(null);
+              }}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                mode === 'login'
+                  ? 'bg-white dark:bg-[#121214] text-black dark:text-white shadow-xs font-semibold'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('signup');
+                setError(null);
+              }}
+              className={`flex-1 py-1.5 text-xs font-medium rounded-lg transition-all cursor-pointer ${
+                mode === 'signup'
+                  ? 'bg-white dark:bg-[#121214] text-black dark:text-white shadow-xs font-semibold'
+                  : 'text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white'
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
+        </div>
+
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-300 text-xs flex items-start gap-2">
+              <span className="shrink-0 font-bold">!</span>
+              <p className="flex-1">{error}</p>
+            </div>
+          )}
+
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                Full Name
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Alex Johnson"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 text-sm bg-zinc-50 dark:bg-[#1a1a1c] border border-zinc-300 dark:border-zinc-700 rounded-xl text-black dark:text-white placeholder-zinc-400 focus:outline-none focus:border-black dark:focus:border-white transition-colors"
+                />
+                <User className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+              Email Address
+            </label>
+            <div className="relative">
+              <input
+                type="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm bg-zinc-50 dark:bg-[#1a1a1c] border border-zinc-300 dark:border-zinc-700 rounded-xl text-black dark:text-white placeholder-zinc-400 focus:outline-none focus:border-black dark:focus:border-white transition-colors"
+              />
+              <Mail className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                Password
+              </label>
+              {mode === 'login' && (
+                <button
+                  type="button"
+                  onClick={() => alert('For this demo app, passwords can be reset or you can use Quick Demo Sign In below.')}
+                  className="text-[11px] text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                placeholder="At least 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-9 pr-10 py-2 text-sm bg-zinc-50 dark:bg-[#1a1a1c] border border-zinc-300 dark:border-zinc-700 rounded-xl text-black dark:text-white placeholder-zinc-400 focus:outline-none focus:border-black dark:focus:border-white transition-colors"
+              />
+              <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black dark:hover:text-white"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {mode === 'signup' && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    placeholder="Repeat password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 text-sm bg-zinc-50 dark:bg-[#1a1a1c] border border-zinc-300 dark:border-zinc-700 rounded-xl text-black dark:text-white placeholder-zinc-400 focus:outline-none focus:border-black dark:focus:border-white transition-colors"
+                  />
+                  <Lock className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                </div>
+              </div>
+
+              {/* Avatar Color Accent */}
+              <div>
+                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  Choose Avatar Theme Color
+                </label>
+                <div className="flex items-center gap-2">
+                  {AVATAR_COLORS.map((col) => (
+                    <button
+                      key={col}
+                      type="button"
+                      onClick={() => setAvatarColor(col)}
+                      className="w-7 h-7 rounded-full flex items-center justify-center transition-transform hover:scale-110 cursor-pointer border border-white/20"
+                      style={{ backgroundColor: col }}
+                    >
+                      {avatarColor === col && <Check className="w-3.5 h-3.5 text-white stroke-[3]" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {mode === 'login' && (
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="rounded border-zinc-300 text-black focus:ring-black cursor-pointer"
+              />
+              <label htmlFor="rememberMe" className="text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer">
+                Keep me signed in on this device
+              </label>
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 px-4 rounded-xl bg-black text-white hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200 text-sm font-medium transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer mt-2"
+          >
+            {loading ? (
+              <span className="inline-block animate-pulse">Processing...</span>
+            ) : (
+              <>
+                <span>{mode === 'login' ? 'Sign In' : 'Create Account'}</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
+
+          {/* Quick Demo Sign In */}
+          <div className="pt-2">
+            <div className="relative flex py-2 items-center">
+              <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800" />
+              <span className="flex-shrink mx-3 text-[11px] text-zinc-500 uppercase tracking-wider">
+                Or
+              </span>
+              <div className="flex-grow border-t border-zinc-200 dark:border-zinc-800" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleDemoLogin}
+              className="w-full py-2 px-3 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 hover:bg-zinc-100 dark:bg-[#1a1a1c] dark:hover:bg-[#242426] text-xs font-medium text-zinc-800 dark:text-zinc-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <GeminiSparkleIcon className="w-4 h-4" useGradient={true} />
+              <span>Continue with Demo Account (Ekenmisire)</span>
+            </button>
+          </div>
+        </form>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-zinc-200 dark:border-[#262626] bg-zinc-50 dark:bg-[#18181b] flex items-center justify-between text-xs text-zinc-500">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
+            <span>Secure local profile</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white underline cursor-pointer"
+          >
+            Continue as Guest
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

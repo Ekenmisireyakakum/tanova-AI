@@ -12,9 +12,62 @@ import {
   Settings,
   Trash2,
   X,
+  User,
 } from 'lucide-react';
-import { ChatSession, ThemeMode } from '../types';
+import { ChatSession, ThemeMode, UserAccount } from '../types';
 import { GeminiSparkleIcon } from './GeminiLogo';
+
+export function UserAvatar({
+  user,
+  className = 'w-8 h-8',
+}: {
+  user?: UserAccount | null;
+  className?: string;
+}) {
+  if (!user) {
+    return (
+      <div className={`${className} rounded-full bg-zinc-200 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 flex items-center justify-center shrink-0 text-zinc-500`}>
+        <User className="w-4 h-4" />
+      </div>
+    );
+  }
+
+  if (user.avatarUrl) {
+    return (
+      <div
+        className={`${className} rounded-full overflow-hidden border border-zinc-300 dark:border-zinc-700 relative shrink-0 shadow-xs bg-zinc-900 flex items-center justify-center`}
+      >
+        <div
+          className="w-full h-full rounded-full bg-cover bg-no-repeat"
+          style={{
+            backgroundImage: `url('${user.avatarUrl}')`,
+            backgroundPosition: '50% 96.2%',
+            backgroundSize: '175%',
+          }}
+        />
+      </div>
+    );
+  }
+
+  const initials = user.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('')
+        .toUpperCase()
+    : 'U';
+
+  return (
+    <div
+      className={`${className} rounded-full border border-zinc-300 dark:border-zinc-700 relative shrink-0 shadow-xs flex items-center justify-center text-white text-xs font-semibold`}
+      style={{ backgroundColor: user.avatarColor || '#4285F4' }}
+    >
+      {initials}
+    </div>
+  );
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -31,6 +84,10 @@ interface SidebarProps {
   geminiEnvAvailable?: boolean;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  currentUser?: UserAccount | null;
+  onOpenProfile?: () => void;
+  onOpenAuth?: (mode: 'login' | 'signup') => void;
+  onOpenStudents?: () => void;
 }
 
 export function Sidebar({
@@ -45,6 +102,10 @@ export function Sidebar({
   onDeleteSession,
   onOpenSettings,
   onOpenHelp,
+  currentUser,
+  onOpenProfile,
+  onOpenAuth,
+  onOpenStudents,
 }: SidebarProps) {
   const [filterQuery, setFilterQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -58,13 +119,16 @@ export function Sidebar({
     if (actionName === 'customize') {
       onOpenSettings();
     } else if (actionName === 'students') {
-      onOpenHelp();
+      if (onOpenStudents) onOpenStudents();
+      else onNewChat();
     } else if (actionName === 'new-notebook') {
-      onNewChat();
+      if (onOpenStudents) onOpenStudents();
+      else onNewChat();
     } else {
       onNewChat();
     }
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+    // Only auto-close on very small mobile phones (< 640px), not in normal desktop / preview split pane!
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
       onClose();
     }
   };
@@ -87,10 +151,10 @@ export function Sidebar({
 
   return (
     <>
-      {/* Mobile Backdrop overlay */}
+      {/* Mobile Backdrop overlay (only on very small mobile screens) */}
       <div
         onClick={onClose}
-        className={`fixed inset-0 z-40 bg-black/60 dark:bg-black/80 backdrop-blur-2xs transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-0 z-40 bg-black/60 dark:bg-black/80 backdrop-blur-xs transition-opacity duration-300 sm:hidden ${
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         aria-hidden="true"
@@ -98,19 +162,19 @@ export function Sidebar({
 
       {/* Main Sidebar Wrapper */}
       <aside
-        className={`fixed md:relative inset-y-0 left-0 z-50 md:z-20 shrink-0 h-full bg-white dark:bg-[#131314] text-black dark:text-[#e3e3e3] border-r border-zinc-200 dark:border-[#262626] flex flex-col transition-all duration-300 ease-in-out select-none shadow-2xl md:shadow-none overflow-hidden ${
+        className={`fixed sm:relative inset-y-0 left-0 z-50 sm:z-20 shrink-0 h-full bg-white dark:bg-[#131314] text-black dark:text-[#e3e3e3] border-r border-zinc-200 dark:border-[#262626] flex flex-col transition-all duration-300 ease-in-out select-none shadow-2xl sm:shadow-none overflow-hidden ${
           isOpen
             ? 'w-[275px] translate-x-0'
-            : '-translate-x-full md:translate-x-0 md:w-[68px]'
+            : '-translate-x-full sm:translate-x-0 sm:w-[68px]'
         }`}
       >
         {/* ======================================================== */}
-        {/* MINIMIZED ICON RAIL (Rendered on desktop when collapsed) */}
+        {/* MINIMIZED ICON RAIL (Rendered on desktop/tablet when collapsed) */}
         {/* Matches user screenshot image_48d5d302.png               */}
         {/* ======================================================== */}
         <div
           className={`w-[68px] h-full flex flex-col items-center justify-between py-3 transition-opacity duration-200 ${
-            isOpen ? 'hidden' : 'hidden md:flex'
+            isOpen ? 'hidden' : 'hidden sm:flex'
           }`}
         >
           {/* Top Section: Sparkle Icon + Actions */}
@@ -123,7 +187,7 @@ export function Sidebar({
               title="Expand sidebar"
               aria-label="Expand sidebar"
             >
-              <GeminiSparkleIcon className="w-6 h-6 text-black dark:text-white group-hover:scale-105 transition-transform" useGradient={false} />
+              <GeminiSparkleIcon className="w-6 h-6 group-hover:scale-105 transition-transform" useGradient={true} />
             </button>
 
             {/* Vertical Action Icon Stack */}
@@ -211,11 +275,18 @@ export function Sidebar({
 
             {/* User Profile Avatar */}
             <div
-              onClick={onOpenSettings}
-              className="w-8 h-8 rounded-full overflow-hidden bg-black text-white dark:bg-zinc-800 dark:text-white border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-[11px] font-bold shrink-0 cursor-pointer hover:opacity-80 transition-opacity shadow-xs"
-              title="Account & Settings (Ekenmisire Tanimu)"
+              onClick={() => {
+                if (currentUser) {
+                  if (onOpenProfile) onOpenProfile();
+                  else onOpenSettings();
+                } else {
+                  onOpenAuth?.('login');
+                }
+              }}
+              className="cursor-pointer hover:opacity-85 transition-opacity"
+              title={currentUser ? `Account: ${currentUser.name}` : 'Sign In'}
             >
-              <span>ET</span>
+              <UserAvatar user={currentUser} className="w-8 h-8" />
             </div>
           </div>
         </div>
@@ -229,13 +300,13 @@ export function Sidebar({
             isOpen ? 'flex opacity-100' : 'hidden opacity-0'
           }`}
         >
-          {/* Top Header: Gemini Logo + Search Button + Collapse Squircle Button */}
+          {/* Top Header: Tanovai Logo + Search Button + Collapse Squircle Button */}
           <div className="flex items-center justify-between px-3.5 pt-3.5 pb-2 border-b border-transparent">
-            {/* Gemini Wordmark & Sparkle */}
-            <div className="flex items-center gap-2 cursor-pointer" onClick={onNewChat} title="Gemini">
-              <GeminiSparkleIcon className="w-5 h-5 text-black dark:text-white shrink-0" useGradient={false} />
+            {/* Tanovai Wordmark & Sparkle */}
+            <div className="flex items-center gap-2 cursor-pointer" onClick={onNewChat} title="Tanovai">
+              <GeminiSparkleIcon className="w-5 h-5 shrink-0" useGradient={true} />
               <span className="text-[19px] font-medium tracking-tight text-black dark:text-white font-['Google_Sans']">
-                Gemini
+                Tanovai
               </span>
             </div>
 
@@ -309,7 +380,7 @@ export function Sidebar({
               type="button"
               onClick={() => {
                 onNewChat();
-                if (window.innerWidth < 768) onClose();
+                if (typeof window !== 'undefined' && window.innerWidth < 640) onClose();
               }}
               className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-full bg-zinc-100 hover:bg-zinc-200 text-black border border-zinc-200 dark:border-transparent dark:bg-[#282a2c] dark:hover:bg-[#333537] dark:text-white text-[13.5px] font-medium transition-colors"
             >
@@ -413,7 +484,7 @@ export function Sidebar({
                     key={session.id}
                     onClick={() => {
                       onSelectSession(session.id);
-                      if (window.innerWidth < 768) onClose();
+                      if (typeof window !== 'undefined' && window.innerWidth < 640) onClose();
                     }}
                     className={`group relative flex items-center justify-between px-3 py-1.5 rounded-xl text-[13px] cursor-pointer transition-colors ${
                       isActive
@@ -442,23 +513,42 @@ export function Sidebar({
 
           {/* Bottom Pinned User Profile Bar */}
           <div className="p-2.5 border-t border-zinc-200 dark:border-[#282a2c] flex items-center justify-between bg-white dark:bg-[#131314]">
-            <div
-              onClick={onOpenSettings}
-              className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer hover:opacity-90 transition-opacity"
-              title="Account & Settings"
-            >
-              {/* User Avatar */}
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-black text-white dark:bg-zinc-800 dark:text-white border border-zinc-300 dark:border-zinc-700 flex items-center justify-center text-[11px] font-bold shrink-0 shadow-xs">
-                <span>ET</span>
-              </div>
+            {currentUser ? (
+              <div
+                onClick={onOpenProfile || onOpenSettings}
+                className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer hover:opacity-90 transition-opacity"
+                title={`Account: ${currentUser.name}`}
+              >
+                {/* User Avatar */}
+                <UserAvatar user={currentUser} className="w-8 h-8" />
 
-              {/* Truncated User Name */}
-              <div className="min-w-0 flex-1">
-                <span className="text-[13px] font-medium text-black dark:text-white truncate block">
-                  Ekenmisire Tanimu yakaku...
-                </span>
+                {/* User Name */}
+                <div className="min-w-0 flex-1">
+                  <span className="text-[13px] font-medium text-black dark:text-white truncate block">
+                    {currentUser.name}
+                  </span>
+                  <span className="text-[11px] text-zinc-500 truncate block">
+                    {currentUser.email}
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div
+                onClick={() => onOpenAuth?.('login')}
+                className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer hover:opacity-90 transition-opacity"
+                title="Sign in or create account"
+              >
+                <UserAvatar user={null} className="w-8 h-8" />
+                <div className="min-w-0 flex-1">
+                  <span className="text-[13px] font-medium text-black dark:text-white truncate block">
+                    Sign In / Sign Up
+                  </span>
+                  <span className="text-[11px] text-zinc-500 truncate block">
+                    Guest session
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Settings Gear Icon */}
             <button

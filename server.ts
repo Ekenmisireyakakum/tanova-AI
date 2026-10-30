@@ -53,10 +53,23 @@ app.post('/api/test-key', async (req: Request, res: Response): Promise<void> => 
           },
         },
       });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: 'Hi',
-      });
+      let response;
+      try {
+        response = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: 'Hi',
+        });
+      } catch (testErr: any) {
+        const testErrMsg = String(testErr?.message || testErr);
+        if (testErrMsg.includes('503') || testErrMsg.includes('UNAVAILABLE') || testErrMsg.toLowerCase().includes('high demand')) {
+          response = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-lite',
+            contents: 'Hi',
+          });
+        } else {
+          throw testErr;
+        }
+      }
       if (response && response.text) {
         res.json({ valid: true, message: 'Google Gemini key is active and responding!' });
         return;
@@ -114,8 +127,276 @@ app.post('/api/test-key', async (req: Request, res: Response): Promise<void> => 
 });
 
 // Unified Chat Streaming endpoint
+// Model candidate interface for resilience mesh
+interface ModelCandidate {
+  provider: 'gemini' | 'groq' | 'openrouter';
+  model: string;
+  name: string;
+}
+
+function getEffectiveKey(
+  provider: string,
+  clientApiKey?: string,
+  clientApiKeys?: Record<string, string>
+): string {
+  if (clientApiKey && clientApiKey.trim().length > 0) return clientApiKey.trim();
+  if (clientApiKeys?.[provider]?.trim()?.length) return clientApiKeys[provider].trim();
+  if (provider === 'gemini') return (process.env.GEMINI_API_KEY || '').trim();
+  if (provider === 'groq') return (process.env.GROQ_API_KEY || '').trim();
+  if (provider === 'openrouter') return (process.env.OPENROUTER_API_KEY || '').trim();
+  return '';
+}
+
+function isRetryableSpike(error: any): boolean {
+  if (!error) return false;
+  const str = String(error?.message || error?.status || error).toLowerCase();
+  return (
+    str.includes('503') ||
+    str.includes('unavailable') ||
+    str.includes('high demand') ||
+    str.includes('429') ||
+    str.includes('resource_exhausted') ||
+    str.includes('overloaded') ||
+    str.includes('capacity') ||
+    str.includes('502') ||
+    str.includes('504') ||
+    str.includes('rate limit') ||
+    str.includes('insufficient credits') ||
+    str.includes('temporarily unavailable')
+  );
+}
+
+function getSpikeReason(error: any): string {
+  const str = String(error?.message || error).toLowerCase();
+  if (str.includes('503') || str.includes('unavailable') || str.includes('high demand')) {
+    return 'High demand spike (503)';
+  }
+  if (str.includes('429') || str.includes('resource_exhausted') || str.includes('rate limit')) {
+    return 'Traffic rate limit (429)';
+  }
+  if (str.includes('insufficient credits')) {
+    return 'Credits limit (switched to free backup)';
+  }
+  if (str.includes('502') || str.includes('504')) {
+    return 'Temporary gateway timeout';
+  }
+  return 'High traffic spike';
+}
+
+function buildFallbackChain(
+  primaryProvider: 'gemini' | 'groq' | 'openrouter',
+  primaryModel: string,
+  autoFallback: boolean,
+  hasGeminiKey: boolean,
+  hasGroqKey: boolean,
+  hasOpenRouterKey: boolean
+): ModelCandidate[] {
+  const chain: ModelCandidate[] = [];
+
+  const add = (provider: 'gemini' | 'groq' | 'openrouter', model: string, name: string) => {
+    if (!chain.some((c) => c.provider === provider && c.model === model)) {
+      chain.push({ provider, model, name });
+    }
+  };
+
+  // 1. Primary Model
+  add(
+    primaryProvider,
+    primaryModel,
+    `${primaryProvider === 'gemini' ? 'Gemini' : primaryProvider === 'groq' ? 'Groq' : 'OpenRouter'} ${primaryModel}`
+  );
+
+  if (!autoFallback) {
+    return chain;
+  }
+
+  // 2. Intra-Provider Fallback (Backup within the same provider)
+  if (primaryProvider === 'gemini') {
+    if (primaryModel !== 'gemini-3.1-flash-lite') {
+      add('gemini', 'gemini-3.1-flash-lite', 'Gemini 3.1 Flash Lite');
+    } else {
+      add('gemini', 'gemini-3.8-flash', 'Gemini 3.8 Flash');
+    }
+  } else if (primaryProvider === 'groq') {
+    if (primaryModel === 'openai/gpt-oss-120b') {
+      add('groq', 'openai/gpt-oss-20b', 'Groq GPT OSS 20B');
+      add('groq', 'qwen/qwen3.8-27b', 'Groq Qwen 3.8 27B');
+    } else if (primaryModel === 'openai/gpt-oss-20b') {
+      add('groq', 'qwen/qwen3.8-27b', 'Groq Qwen 3.8 27B');
+      add('groq', 'openai/gpt-oss-120b', 'Groq GPT OSS 120B');
+    } else {
+      add('groq', 'openai/gpt-oss-20b', 'Groq GPT OSS 20B');
+    }
+  } else if (primaryProvider === 'openrouter') {
+    add('openrouter', 'nvidia/nemotron-3.5-lightning:free', 'Nemotron 3.5 Lightning (Free)');
+    add('openrouter', 'liquid/lfm-2.5-2.6b:free', 'Liquid LFM 2.5 (Free)');
+  }
+
+  // 3. Cross-Provider Fallback (Backup to other available providers)
+  if (hasGeminiKey && primaryProvider !== 'gemini') {
+    add('gemini', 'gemini-3.1-flash-lite', 'Gemini 3.1 Flash Lite');
+  }
+  if (hasGroqKey && primaryProvider !== 'groq') {
+    add('groq', 'openai/gpt-oss-20b', 'Groq GPT OSS 20B');
+  }
+  if (hasOpenRouterKey && primaryProvider !== 'openrouter') {
+    add('openrouter', 'nvidia/nemotron-3.5-lightning:free', 'Nemotron 3.5 Lightning (Free)');
+  }
+
+  return chain;
+}
+
+async function executeCandidateStream(
+  cand: ModelCandidate,
+  effectiveKey: string,
+  messages: any[],
+  systemInstruction: string | undefined,
+  temperature: number | undefined,
+  onChunk: (text: string) => void
+): Promise<void> {
+  if (cand.provider === 'gemini') {
+    const ai = new GoogleGenAI({
+      apiKey: effectiveKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } },
+    });
+    const contents = messages.map((m: any) => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content || '' }],
+    }));
+    const config: any = {};
+    if (systemInstruction && systemInstruction.trim().length > 0) {
+      config.systemInstruction = systemInstruction.trim();
+    }
+    if (!cand.model.includes('3.8') && !cand.model.includes('4-argon') && typeof temperature === 'number') {
+      config.temperature = temperature;
+    }
+    const responseStream = await ai.models.generateContentStream({
+      model: cand.model,
+      contents,
+      config: Object.keys(config).length > 0 ? config : undefined,
+    });
+    for await (const chunk of responseStream) {
+      const text = chunk.text;
+      if (text) onChunk(text);
+    }
+    return;
+  }
+
+  if (cand.provider === 'groq') {
+    const formattedMessages = [...messages];
+    if (systemInstruction && systemInstruction.trim().length > 0) {
+      formattedMessages.unshift({ role: 'system', content: systemInstruction.trim() });
+    }
+    const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${effectiveKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: cand.model,
+        messages: formattedMessages,
+        stream: true,
+        temperature: typeof temperature === 'number' ? temperature : 0.7,
+      }),
+    });
+    if (!groqRes.ok) {
+      const errJson = await groqRes.json().catch(() => ({}));
+      const msg = (errJson as any)?.error?.message || `Groq HTTP ${groqRes.status}`;
+      throw new Error(msg);
+    }
+    if (!groqRes.body) throw new Error('No stream body from Groq');
+    const reader = groqRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue;
+        if (trimmed === 'data: [DONE]') return;
+        if (trimmed.startsWith('data: ')) {
+          try {
+            const parsed = JSON.parse(trimmed.slice(6));
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) onChunk(delta);
+          } catch {}
+        }
+      }
+    }
+    return;
+  }
+
+  if (cand.provider === 'openrouter') {
+    const formattedMessages = [...messages];
+    if (systemInstruction && systemInstruction.trim().length > 0) {
+      formattedMessages.unshift({ role: 'system', content: systemInstruction.trim() });
+    }
+    const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${effectiveKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://gemini.google.com',
+        'X-Title': 'Gemini Multi-Provider Chat',
+      },
+      body: JSON.stringify({
+        model: cand.model,
+        messages: formattedMessages,
+        stream: true,
+        temperature: typeof temperature === 'number' ? temperature : 0.7,
+      }),
+    });
+    if (!orRes.ok) {
+      const errJson = await orRes.json().catch(() => ({}));
+      const msg = (errJson as any)?.error?.message || `OpenRouter HTTP ${orRes.status}`;
+      throw new Error(msg);
+    }
+    if (!orRes.body) throw new Error('No stream body from OpenRouter');
+    const reader = orRes.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith(':')) continue;
+        if (trimmed === 'data: [DONE]') return;
+        if (trimmed.startsWith('data: ')) {
+          try {
+            const parsed = JSON.parse(trimmed.slice(6));
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) onChunk(delta);
+          } catch {}
+        }
+      }
+    }
+    return;
+  }
+
+  throw new Error(`Unsupported provider: ${cand.provider}`);
+}
+
+// Unified Chat Streaming endpoint with Universal Fallback Mesh
 app.post('/api/chat/stream', async (req: Request, res: Response): Promise<void> => {
-  const { provider, model, messages, apiKey, systemInstruction, temperature } = req.body;
+  const {
+    provider,
+    model,
+    messages,
+    apiKey,
+    apiKeys,
+    systemInstruction,
+    temperature,
+    autoFallback = true,
+  } = req.body;
 
   if (!provider || !messages || !Array.isArray(messages) || messages.length === 0) {
     res.status(400).json({ error: 'Provider and a non-empty messages array are required' });
@@ -129,6 +410,40 @@ app.post('/api/chat/stream', async (req: Request, res: Response): Promise<void> 
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders?.();
 
+  // Helper to format/clean raw error messages
+  function formatErrorMessage(err: any): string {
+    if (!err) return 'An unexpected error occurred.';
+    let text = typeof err === 'string' ? err : err.message || String(err);
+
+    // Unpack nested stringified JSON errors from upstream APIs
+    for (let i = 0; i < 3; i++) {
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed?.error?.message) {
+          text = parsed.error.message;
+        } else if (parsed?.message) {
+          text = parsed.message;
+        } else {
+          break;
+        }
+      } catch {
+        break;
+      }
+    }
+
+    if (text.includes('503') || text.includes('UNAVAILABLE') || text.toLowerCase().includes('high demand')) {
+      return 'The model is currently experiencing high demand (503). Spikes in demand are usually temporary. Please try again or switch to Gemini 3.1 Flash Lite or Groq.';
+    }
+    if (text.includes('429') || text.includes('RESOURCE_EXHAUSTED')) {
+      return 'Rate limit reached (429). Please wait a moment before sending another message, or try Gemini 3.1 Flash Lite.';
+    }
+    if (text.includes('API_KEY_INVALID') || (text.includes('400') && text.includes('API key'))) {
+      return 'The provided API key is invalid. Please check your key in Settings.';
+    }
+
+    return text.trim();
+  }
+
   // Helper to send SSE event
   const sendEvent = (data: any) => {
     res.write(`data: ${JSON.stringify(data)}\n\n`);
@@ -137,245 +452,89 @@ app.post('/api/chat/stream', async (req: Request, res: Response): Promise<void> 
     }
   };
 
-  const sendError = (errorMessage: string) => {
-    sendEvent({ error: errorMessage });
+  const sendError = (errorMessage: any) => {
+    sendEvent({ error: formatErrorMessage(errorMessage) });
     res.write('data: [DONE]\n\n');
     res.end();
   };
 
-  // 1. GOOGLE GEMINI
-  if (provider === 'gemini') {
-    const keyToUse = (apiKey && apiKey.trim().length > 0) ? apiKey.trim() : process.env.GEMINI_API_KEY;
-    if (!keyToUse) {
-      sendError('Gemini API key is missing. Please set your key in Settings or configure GEMINI_API_KEY.');
-      return;
+  const hasGemini = Boolean(getEffectiveKey('gemini', apiKey, apiKeys));
+  const hasGroq = Boolean(getEffectiveKey('groq', apiKey, apiKeys));
+  const hasOpenRouter = Boolean(getEffectiveKey('openrouter', apiKey, apiKeys));
+
+  const chain = buildFallbackChain(
+    provider,
+    model || (provider === 'gemini' ? 'gemini-3.8-flash' : provider === 'groq' ? 'openai/gpt-oss-120b' : 'meta-llama/llama-3.3-70b-instruct'),
+    autoFallback !== false,
+    hasGemini,
+    hasGroq,
+    hasOpenRouter
+  );
+
+  let streamedAnyChunk = false;
+  let lastError: any = null;
+
+  for (let i = 0; i < chain.length; i++) {
+    const candidate = chain[i];
+    const candKey = getEffectiveKey(candidate.provider, apiKey, apiKeys);
+    if (!candKey) {
+      continue;
+    }
+
+    if (i > 0) {
+      console.log(`Auto-fallback engaged: routing from ${provider}:${model} to ${candidate.provider}:${candidate.model}`);
+      sendEvent({
+        fallback: {
+          originalProvider: provider,
+          originalModel: model,
+          fallbackProvider: candidate.provider,
+          fallbackModel: candidate.model,
+          reason: getSpikeReason(lastError),
+        },
+      });
     }
 
     try {
-      const ai = new GoogleGenAI({
-        apiKey: keyToUse,
-        httpOptions: {
-          headers: {
-            'User-Agent': 'aistudio-build',
-          },
-        },
-      });
-
-      // Format conversation history for Gemini SDK
-      // Roles must be 'user' or 'model'
-      const contents = messages.map((msg: { role: string; content: string }) => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content || '' }],
-      }));
-
-      const modelToUse = model || 'gemini-3.8-flash';
-
-      const responseStream = await ai.models.generateContentStream({
-        model: modelToUse,
-        contents,
-        config: {
-          systemInstruction: systemInstruction || undefined,
-          temperature: typeof temperature === 'number' ? temperature : 0.7,
-        },
-      });
-
-      for await (const chunk of responseStream) {
-        const text = chunk.text;
-        if (text) {
-          sendEvent({ text });
+      await executeCandidateStream(
+        candidate,
+        candKey,
+        messages,
+        systemInstruction,
+        temperature,
+        (chunkText) => {
+          streamedAnyChunk = true;
+          sendEvent({ text: chunkText });
         }
-      }
+      );
 
       res.write('data: [DONE]\n\n');
       res.end();
       return;
     } catch (err: any) {
-      console.error('Gemini streaming error:', err);
-      sendError(err?.message || 'Error occurred while streaming Gemini response.');
-      return;
+      console.warn(`Candidate ${candidate.provider}:${candidate.model} failed:`, err?.message || err);
+      lastError = err;
+
+      // If tokens have already begun streaming to user, cannot restart mid-generation
+      if (streamedAnyChunk) {
+        sendError(err);
+        return;
+      }
+
+      // If autoFallback is disabled, fail immediately
+      if (!autoFallback) {
+        sendError(err);
+        return;
+      }
+
+      // If error is not a transient spike and it was candidate 0, continue only if more candidates exist
+      if (!isRetryableSpike(err) && i === 0 && !String(err?.message || err).includes('missing')) {
+        sendError(err);
+        return;
+      }
     }
   }
 
-  // 2. GROQ
-  if (provider === 'groq') {
-    const groqKey =
-      apiKey && apiKey.trim().length > 0 ? apiKey.trim() : process.env.GROQ_API_KEY?.trim();
-    if (!groqKey) {
-      sendError('Groq API key is missing. Please add your Groq API key in Settings (starts with gsk_).');
-      return;
-    }
-
-    try {
-      const formattedMessages = [...messages];
-      if (systemInstruction && systemInstruction.trim().length > 0) {
-        formattedMessages.unshift({ role: 'system', content: systemInstruction });
-      }
-
-      const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${groqKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: model || 'openai/gpt-oss-120b',
-          messages: formattedMessages,
-          stream: true,
-          temperature: typeof temperature === 'number' ? temperature : 0.7,
-        }),
-      });
-
-      if (!groqRes.ok) {
-        const errJson = await groqRes.json().catch(() => ({}));
-        const msg = (errJson as any)?.error?.message || `Groq request failed with HTTP ${groqRes.status}`;
-        sendError(msg);
-        return;
-      }
-
-      if (!groqRes.body) {
-        sendError('No response stream received from Groq.');
-        return;
-      }
-
-      // Stream lines from Groq response
-      const reader = groqRes.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith(':')) continue;
-
-          if (trimmed === 'data: [DONE]') {
-            res.write('data: [DONE]\n\n');
-            res.end();
-            return;
-          }
-
-          if (trimmed.startsWith('data: ')) {
-            try {
-              const parsed = JSON.parse(trimmed.slice(6));
-              const deltaContent = parsed.choices?.[0]?.delta?.content;
-              if (deltaContent) {
-                sendEvent({ text: deltaContent });
-              }
-            } catch {
-              // Ignore partial JSON
-            }
-          }
-        }
-      }
-
-      res.write('data: [DONE]\n\n');
-      res.end();
-      return;
-    } catch (err: any) {
-      console.error('Groq streaming error:', err);
-      sendError(err?.message || 'Error occurred while contacting Groq.');
-      return;
-    }
-  }
-
-  // 3. OPENROUTER
-  if (provider === 'openrouter') {
-    const openRouterKey = (apiKey && apiKey.trim().length > 0) ? apiKey.trim() : process.env.OPENROUTER_API_KEY?.trim();
-    if (!openRouterKey) {
-      sendError('OpenRouter API key is missing. Please add your OpenRouter key in Settings (starts with sk-or-v1-).');
-      return;
-    }
-
-    try {
-      const formattedMessages = [...messages];
-      if (systemInstruction && systemInstruction.trim().length > 0) {
-        formattedMessages.unshift({ role: 'system', content: systemInstruction });
-      }
-
-      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${openRouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'https://gemini.google.com',
-          'X-Title': 'Gemini Multi-Provider Chat',
-        },
-        body: JSON.stringify({
-          model: model || 'meta-llama/llama-3.3-70b-instruct',
-          messages: formattedMessages,
-          stream: true,
-          temperature: typeof temperature === 'number' ? temperature : 0.7,
-        }),
-      });
-
-      if (!orRes.ok) {
-        const errJson = await orRes.json().catch(() => ({}));
-        let msg = (errJson as any)?.error?.message || `OpenRouter request failed with HTTP ${orRes.status}`;
-        if (msg.toLowerCase().includes('insufficient credits')) {
-          msg = `${msg} Tip: Try selecting a free-tier model such as Nemotron 3.5 Lightning (Free) or Liquid LFM 2.5 (Free) from the model selector!`;
-        }
-        sendError(msg);
-        return;
-      }
-
-      if (!orRes.body) {
-        sendError('No response stream received from OpenRouter.');
-        return;
-      }
-
-      const reader = orRes.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith(':')) continue;
-
-          if (trimmed === 'data: [DONE]') {
-            res.write('data: [DONE]\n\n');
-            res.end();
-            return;
-          }
-
-          if (trimmed.startsWith('data: ')) {
-            try {
-              const parsed = JSON.parse(trimmed.slice(6));
-              const deltaContent = parsed.choices?.[0]?.delta?.content;
-              if (deltaContent) {
-                sendEvent({ text: deltaContent });
-              }
-            } catch {
-              // Ignore partial JSON
-            }
-          }
-        }
-      }
-
-      res.write('data: [DONE]\n\n');
-      res.end();
-      return;
-    } catch (err: any) {
-      console.error('OpenRouter streaming error:', err);
-      sendError(err?.message || 'Error occurred while contacting OpenRouter.');
-      return;
-    }
-  }
-
-  sendError(`Unsupported provider "${provider}". Choose Google Gemini, Groq, or OpenRouter.`);
+  sendError(lastError || 'All models in the fallback chain are currently unavailable. Please verify API keys or try again shortly.');
 });
 
 // Frontend serving

@@ -5,7 +5,7 @@ import { ProviderId } from '../types';
 export function GeminiSparkleIcon({
   className = 'w-5 h-5',
   animated = false,
-  useGradient = false,
+  useGradient = true,
 }: {
   className?: string;
   animated?: boolean;
@@ -24,7 +24,7 @@ export function GeminiSparkleIcon({
     );
   }
 
-  // Monochrome gradient for sleek pure black and white theme
+  // Iconic Google Gemini Multi-Color Gradient matching user screenshots
   return (
     <svg
       viewBox="0 0 24 24"
@@ -33,14 +33,17 @@ export function GeminiSparkleIcon({
       className={`${className} ${animated ? 'animate-gemini-pulse' : ''}`}
     >
       <defs>
-        <linearGradient id="geminiSparkleGradMono" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="currentColor" stopOpacity="1" />
-          <stop offset="100%" stopColor="currentColor" stopOpacity="0.4" />
+        <linearGradient id="geminiSparkleGradColor" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#EA4335" />
+          <stop offset="25%" stopColor="#FBBC04" />
+          <stop offset="50%" stopColor="#34A853" />
+          <stop offset="75%" stopColor="#4285F4" />
+          <stop offset="100%" stopColor="#9B72CB" />
         </linearGradient>
       </defs>
       <path
         d="M12 2C12 7.52285 7.52285 12 2 12C7.52285 12 12 16.4772 12 22C12 16.4772 16.4772 12 22 12C16.4772 12 12 7.52285 12 2Z"
-        fill="url(#geminiSparkleGradMono)"
+        fill="url(#geminiSparkleGradColor)"
       />
     </svg>
   );
@@ -56,7 +59,7 @@ export function ProviderIcon({ provider, className = 'w-4 h-4' }: { provider: Pr
   return <GeminiSparkleIcon className={className} />;
 }
 
-export function GeminiLogo({
+export function TanovaiLogo({
   showWordmark = true,
   subtitle,
   className = '',
@@ -67,11 +70,11 @@ export function GeminiLogo({
 }) {
   return (
     <div className={`inline-flex items-center gap-2 select-none ${className}`}>
-      <GeminiSparkleIcon className="w-5 h-5 shrink-0 text-black dark:text-white" />
+      <GeminiSparkleIcon className="w-5 h-5 shrink-0" useGradient={true} />
       {showWordmark && (
         <div className="flex items-baseline gap-1.5">
           <span className="text-lg font-medium tracking-tight text-black dark:text-white font-['Google_Sans']">
-            Gemini
+            Tanovai
           </span>
           {subtitle && (
             <span className="text-[10px] px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 font-medium border border-zinc-200 dark:border-zinc-700">
@@ -83,3 +86,6 @@ export function GeminiLogo({
     </div>
   );
 }
+
+// Alias for backwards compatibility
+export const GeminiLogo = TanovaiLogo;
