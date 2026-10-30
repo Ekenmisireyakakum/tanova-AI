@@ -63,14 +63,9 @@ export function StudentsView({
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
-                Student Learning Hub
-              </h1>
-              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Student Plan Active
-              </span>
-            </div>
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-900">
+              Student Learning Hub
+            </h1>
             <p className="text-xs text-slate-500 mt-0.5">
               Accelerate coursework, syllabus synthesis, active recall quizzes, and exams
             </p>
@@ -87,26 +82,21 @@ export function StudentsView({
         </button>
       </div>
 
-      {/* Verified Student Plan Card */}
+      {/* Academic Reasoning Header Card */}
       <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 shadow-xs">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-emerald-600" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
-              12-Month Student Membership
+            <Award className="w-4 h-4 text-slate-600" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">
+              Academic Reasoning & Study Aids
             </span>
           </div>
           <h2 className="text-base sm:text-lg font-semibold text-slate-900">
-            Unlimited Academic Reasoning & Multi-Modal Study Aids
+            Coursework, Syllabi Synthesis & Interactive Learning
           </h2>
           <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
-            Full access to multimodal models, interactive syllabus parsing, customized lesson chapters, and automated revision routines.
+            Organize study notebooks, convert course syllabi into structured modules, and run spaced repetition quizzes with Tanovai.
           </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-xs px-3.5 py-1.5 rounded-xl bg-slate-200 text-slate-800 font-semibold shadow-xs">
-            Status: Active & Verified
-          </span>
         </div>
       </div>
 

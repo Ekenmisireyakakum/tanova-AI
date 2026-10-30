@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Mail, Lock, User, Eye, EyeOff, Check, ArrowRight, ShieldCheck } from 'lucide-react';
 import { UserAccount } from '../types';
-import { loginUser, registerUser, DEFAULT_DEMO_USER, saveCurrentUser } from '../utils/storage';
+import { loginUser, registerUser } from '../utils/storage';
 import { TanovaiLogo, GeminiSparkleIcon } from './GeminiLogo';
 
 interface AuthModalProps {
@@ -84,12 +84,6 @@ export function AuthModal({
         onClose();
       }
     }, 200);
-  };
-
-  const handleDemoLogin = () => {
-    saveCurrentUser(DEFAULT_DEMO_USER);
-    onSuccess(DEFAULT_DEMO_USER);
-    onClose();
   };
 
   return (
@@ -304,26 +298,6 @@ export function AuthModal({
               </>
             )}
           </button>
-
-          {/* Quick Demo Sign In */}
-          <div className="pt-2">
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-slate-200" />
-              <span className="flex-shrink mx-3 text-[11px] text-slate-400 uppercase tracking-wider">
-                Or
-              </span>
-              <div className="flex-grow border-t border-slate-200" />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              className="w-full py-2 px-3 rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-xs font-medium text-slate-800 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <GeminiSparkleIcon className="w-4 h-4" useGradient={true} />
-              <span>Continue with Demo Account (Ekenmisire)</span>
-            </button>
-          </div>
         </form>
 
         {/* Footer */}

@@ -278,7 +278,15 @@ export function LibraryView({ onSelectPrompt, onBackToChat }: LibraryViewProps) 
       </div>
 
       {/* Prompts Grid */}
-      {filteredPrompts.length === 0 ? (
+      {prompts.length === 0 ? (
+        <div className="text-center py-16 text-slate-400 bg-slate-50/60 rounded-3xl border border-dashed border-slate-200">
+          <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-40 text-slate-400" />
+          <p className="text-sm font-medium text-slate-700">No prompt templates yet</p>
+          <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            Click "+ New Template" above to save custom prompts for easy reuse across chats.
+          </p>
+        </div>
+      ) : filteredPrompts.length === 0 ? (
         <div className="text-center py-16 text-slate-400">
           <BookOpen className="w-10 h-10 mx-auto mb-2 opacity-40" />
           <p className="text-sm font-medium">No templates found matching your search</p>

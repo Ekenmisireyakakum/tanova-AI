@@ -519,45 +519,51 @@ export function Sidebar({
             </div>
 
             {/* Render Notebooks List */}
-            <div className="space-y-1 mb-1 max-h-[120px] overflow-y-auto">
-              {notebooks.map((nb) => {
-                const isNbActive = activeView === 'notebook' && activeNotebookId === nb.id;
-                return (
-                  <div
-                    key={nb.id}
-                    onClick={() => {
-                      onOpenNotebook(nb);
-                      if (typeof window !== 'undefined' && window.innerWidth < 640) onClose();
-                    }}
-                    className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer ${
-                      isNbActive
-                        ? 'bg-slate-200/80 text-slate-900 font-semibold'
-                        : 'font-normal text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
-                      <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate">{nb.title}</span>
+            {notebooks.length === 0 ? (
+              <div className="px-2.5 py-1.5 text-[11px] text-slate-400 italic">
+                No notebooks yet
+              </div>
+            ) : (
+              <div className="space-y-1 mb-1 max-h-[120px] overflow-y-auto">
+                {notebooks.map((nb) => {
+                  const isNbActive = activeView === 'notebook' && activeNotebookId === nb.id;
+                  return (
+                    <div
+                      key={nb.id}
+                      onClick={() => {
+                        onOpenNotebook(nb);
+                        if (typeof window !== 'undefined' && window.innerWidth < 640) onClose();
+                      }}
+                      className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors text-left cursor-pointer ${
+                        isNbActive
+                          ? 'bg-slate-200/80 text-slate-900 font-semibold'
+                          : 'font-normal text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1 pr-1">
+                        <BookOpen className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate">{nb.title}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[10px] text-emerald-600 font-medium">
+                          {nb.progressPercent}%
+                        </span>
+                        {onDeleteNotebook && (
+                          <button
+                            type="button"
+                            onClick={(e) => onDeleteNotebook(nb.id, e)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-red-500 rounded transition-opacity cursor-pointer"
+                            title="Delete notebook"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className="text-[10px] text-emerald-600 font-medium">
-                        {nb.progressPercent}%
-                      </span>
-                      {onDeleteNotebook && (
-                        <button
-                          type="button"
-                          onClick={(e) => onDeleteNotebook(nb.id, e)}
-                          className="opacity-0 group-hover:opacity-100 p-0.5 text-slate-400 hover:text-red-500 rounded transition-opacity cursor-pointer"
-                          title="Delete notebook"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* "+ New notebook" Button */}
             <button
