@@ -2,14 +2,26 @@ import express, { Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-// Load .env first, then .env.local overrides (matches the README's documented flow)
+// Load .env then .env.local for local dev — on Vercel env vars come from the dashboard
 dotenv.config();
-dotenv.config({ path: '.env.local' });
+try { dotenv.config({ path: '.env.local' }); } catch {}
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// Safe __dirname: works in ESM, CJS, and Vercel serverless (import.meta.url may be undefined)
+function getSafeDir(): string {
+  try {
+    // ESM context
+    if (typeof import.meta?.url === 'string') {
+      return path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+    }
+  } catch {}
+  try {
+    // CJS context
+    if (typeof __dirname === 'string') return __dirname;
+  } catch {}
+  return process.cwd();
+}
+const __serverDir = getSafeDir();
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
@@ -720,9 +732,9 @@ app.post(['/api/chat/stream', '/chat/stream', '*/chat/stream'], async (req: Requ
 // Frontend serving
 async function start() {
   if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, 'dist')));
+    app.use(express.static(path.join(__serverDir, 'dist')));
     app.get('*', (_req, res) => {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+      res.sendFile(path.join(__serverDir, 'dist', 'index.html'));
     });
   } else {
     const { createServer: createViteServer } = await import('vite');
