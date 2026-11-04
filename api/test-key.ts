@@ -1,4 +1,4 @@
-import app from '../server';
+import app from './_server';
 
 export const maxDuration = 30;
 

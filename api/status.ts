@@ -1,4 +1,4 @@
-import app from '../server';
+import app from './_server';
 
 export default function handler(req: any, res: any) {
   if (req.method === 'OPTIONS') {

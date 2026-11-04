@@ -1,4 +1,4 @@
-import app from '../../server';
+import app from '../_server';
 
 // Configure max serverless execution duration (60s) for streaming responses on Vercel
 export const maxDuration = 60;
